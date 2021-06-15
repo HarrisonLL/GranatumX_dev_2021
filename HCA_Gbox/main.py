@@ -2,9 +2,9 @@ import granatum_sdk
 import requests
 import os
 from tqdm import tqdm
+import shutil
 
 def download_file(url, output_path):
-    print("here inside the download_file")
     url = url.replace('/fetch', '')  # Work around https://github.com/DataBiosphere/azul/issues/2908
     
     response = requests.get(url, stream=True)
@@ -32,10 +32,17 @@ def iterate_matrices_tree(tree, keys=()):
 
 
 def download_data(ProjectID):
+    print(os.getcwd())
+    # destroy if exits, and then create ./tmp_datasets directory
+    dirpath = './tmp_datasets'
+    if os.path.exists(dirpath) and os.path.isdir(dirpath):
+        shutil.rmtree(dirpath)
+    os.mkdir(dirpath)
+
     project_uuid = ProjectID
     catalog = 'dcp5'
     endpoint_url = f'https://service.azul.data.humancellatlas.org/index/projects/{project_uuid}'
-    save_location = './tmp_datasets'
+    save_location = dirpath
     response = requests.get(endpoint_url, params={'catalog': catalog})
     response.raise_for_status()
 
@@ -75,6 +82,8 @@ def main():
     #gn.commit()
     ProjectID = gn.get_arg('PID', '4a95101c-9ffc-4f30-a809-f04518a23803')
     download_data(ProjectID)
+    print(os.listdir('./tmp_datasets'))
+
 
 
 

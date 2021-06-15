@@ -37,7 +37,7 @@ gboxes:
       # docker run <...params_injected_by_GranatumX...> <image> <cmd>
       backend:
         type: docker
-        image: hca_test1
+        image: {GBOX}
         cmd: python ./main.py
 
     # The "frontend" field defines the panels on the frontend. The "injectInto" field is the unique ID of the arg or
