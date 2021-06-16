@@ -1,8 +1,10 @@
 import granatum_sdk
 import requests
 import os
+import loompy
 from tqdm import tqdm
 import shutil
+import copy
 
 def download_file(url, output_path):
     url = url.replace('/fetch', '')  # Work around https://github.com/DataBiosphere/azul/issues/2908
@@ -63,9 +65,9 @@ def download_data(ProjectID):
 
 def main():
     gn = granatum_sdk.Granatum()
-
+    assay = gn.get_import("assay")
     #assay = gn.get_import('assay')
-    #assay_df = gn.pandas_from_assay(assay)
+    assay_df = gn.pandas_from_assay(assay)
 
     #checkbox_value = gn.get_arg('someCheckbox')
     #number_value = gn.get_arg('someNumber')
@@ -80,14 +82,34 @@ def main():
     #gn.add_result(markdown_str, data_type='markdown')
 
     #gn.commit()
+    #print(assay_df.head(),flush = True)
+
     ProjectID = gn.get_arg('PID', '4a95101c-9ffc-4f30-a809-f04518a23803')
     download_data(ProjectID)
-    print(os.listdir('./tmp_datasets'))
+    print("Finished downloading!", flush = True)
+    print("Now start to load data...", flush = True)
+    os.chdir('./tmp_datasets')
+    #print(len(assay['matrix']),flush = True)
+    #print(len(assay['sampleIds']), flush = True)
 
+    filename = 't-cell-activation-human-blood-10XV2.loom'
+    ds = loompy.connect(filename)
+    tmp = ds[:,:].tolist()
 
+    HCAassay = copy.deepcopy(assay)
 
+    print('Storing Data...', flush = True)
+    HCAassay['matrix'] = tmp
+    HCAassay['geneIds'] = ds.ra["Gene"].tolist()
+    HCAassay['sampleIds'] = ds.ca["CellID"].tolist()
+    print('Success!',flush = True)
 
+    print('Exporting data... May take long:>', flush = True)
 
+    gn.export_statically(HCAassay,"HCA assay")
+    gn.add_result("Successfully loading HCA data", data_type='markdown')
+
+    gn.commit()
 
 if __name__ == "__main__":
     main()

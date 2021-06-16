@@ -11,8 +11,8 @@ id: hca_test1:1
 # Gbox specification. The fields missing in each Gbox specification will be automatically filled with the default.
 meta:
   maintainer:
-    name: Harrison Li
-    email: harrisonliding@gmail.com
+    name: Harrison Li, Minghao Yang
+    email: harrisonliding@gmail.com, minghaoy@umich.edu
 
 
 # The "gboxes" field contains a list of gboxes to be included in the Gpackage. Each item in the list can be either an
@@ -57,3 +57,10 @@ gboxes:
                     value: c1810dbc-16d2-45c3-b45e-3e675f88d87b
           default: 4a95101c-9ffc-4f30-a809-f04518a23803
           injectInto: PID
+      imports:
+        - kind: assay
+          label: Assay
+          injectInto: assay    
+      exports:
+        - kind: assay
+          extractFrom: HCA assay
