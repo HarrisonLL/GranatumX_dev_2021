@@ -11,7 +11,7 @@ id: hca_test1:1
 # Gbox specification. The fields missing in each Gbox specification will be automatically filled with the default.
 meta:
   maintainer:
-    name: Harrison Li, Minghao Yang
+    name: Harrison Li, Robert Yang
     email: harrisonliding@gmail.com, minghaoy@umich.edu
 
 
@@ -56,11 +56,7 @@ gboxes:
                   - label: A cell atlas of human thymic development defines T cell repertoire formation
                     value: c1810dbc-16d2-45c3-b45e-3e675f88d87b
           default: 4a95101c-9ffc-4f30-a809-f04518a23803
-          injectInto: PID
-      imports:
-        - kind: assay
-          label: Assay
-          injectInto: assay    
+          injectInto: PID  
       exports:
         - kind: assay
           extractFrom: HCA assay

@@ -5,6 +5,7 @@ import loompy
 from tqdm import tqdm
 import shutil
 import copy
+from collections import defaultdict
 
 def download_file(url, output_path):
     url = url.replace('/fetch', '')  # Work around https://github.com/DataBiosphere/azul/issues/2908
@@ -65,9 +66,9 @@ def download_data(ProjectID):
 
 def main():
     gn = granatum_sdk.Granatum()
-    assay = gn.get_import("assay")
+
     #assay = gn.get_import('assay')
-    assay_df = gn.pandas_from_assay(assay)
+    #assay_df = gn.pandas_from_assay(assay)
 
     #checkbox_value = gn.get_arg('someCheckbox')
     #number_value = gn.get_arg('someNumber')
@@ -96,7 +97,7 @@ def main():
     ds = loompy.connect(filename)
     tmp = ds[:,:].tolist()
 
-    HCAassay = copy.deepcopy(assay)
+    HCAassay = defaultdict(list)
 
     print('Storing Data...', flush = True)
     HCAassay['matrix'] = tmp
