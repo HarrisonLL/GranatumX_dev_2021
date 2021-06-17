@@ -1,6 +1,7 @@
 import granatum_sdk
 import requests
 import os
+from os.path import basename
 import loompy
 from tqdm import tqdm
 import shutil
@@ -43,7 +44,7 @@ def download_data(ProjectID):
     os.mkdir(dirpath)
 
     project_uuid = ProjectID
-    catalog = 'dcp5'
+    catalog = 'dcp6'
     endpoint_url = f'https://service.azul.data.humancellatlas.org/index/projects/{project_uuid}'
     save_location = dirpath
     response = requests.get(endpoint_url, params={'catalog': catalog})
@@ -106,8 +107,9 @@ def main():
     print('Success!',flush = True)
 
     print('Exporting data... May take long:>', flush = True)
-
-    gn.export_statically(HCAassay,"HCA assay")
+    
+    #assay_export_name = "[A]{}".format(basename(filename))
+    gn.export(HCAassay,"HCA assay")
     gn.add_result("Successfully loading HCA data", data_type='markdown')
 
     gn.commit()
