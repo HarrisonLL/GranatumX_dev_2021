@@ -1,0 +1,32 @@
+id: testpackage-{VER}
+meta:
+  maintainer:
+    name: Your Name
+    email: your_name@uni.edu
+gboxes: 
+  - id: {GBOX}-{VER}
+    meta:
+      title: {GBOX} {VER}
+      subtitle: "Example Gbox that serves as a template"
+      description: 
+        This is an example of a Gbox
+    endpoints:
+      backend:
+        type: docker
+        image: {GBOX}
+        cmd: Rscript ./main.R
+    frontend:
+      args:
+        - type: number 
+          injectInto: exampleArgument # this field is used to access arguments from the main script
+          default: 5
+          label: Just an example argument
+          description: "An argument that serves as an example"
+      imports:
+        - kind: assay # the "assay" data type by which GranatumX records genomic assays
+          label: Assay
+          injectInto: exampleImport # this field is used to access imports from the main script
+      exports:
+        - kind: assay # the "assay" data type is commonly used for both imports and exports through GranatumX
+          extractFrom: exampleExport # this field is used to access exports from the main script
+          meta: {}
