@@ -48,15 +48,11 @@ gboxes:
     # Again, refer to <GranatumX_root>/gbox_installer/types/index.d.ts for the exact schema.
     frontend:
       args:
-        - type: select
+        - type: text
           label: Project Name and ID
-          choices:
-                  - label:  A single-cell reference map of transcriptional states for human blood and tissue T cell activation
-                    value: 4a95101c-9ffc-4f30-a809-f04518a23803
-                  - label: A cell atlas of human thymic development defines T cell repertoire formation
-                    value: c1810dbc-16d2-45c3-b45e-3e675f88d87b
-          default: 4a95101c-9ffc-4f30-a809-f04518a23803
-          injectInto: PID  
-      exports:
-        - kind: assay
-          extractFrom: HCA assay
+          default: '4a95101c-9ffc-4f30-a809-f04518a23803'
+          injectInto: PID
+          description: Please visit https://data.humancellatlas.org/explore/projects to pick a project to start. Enter corresponding project ID.
+          #exports:
+          # - kind: assay
+          # extractFrom: HCA assay
