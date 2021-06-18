@@ -22,8 +22,19 @@ genemat <- get(tmp)
 # INSERT THE BODY OF YOUR SCRIPT HERE
 # for example, you may transpose the gene expression data as
 # assay$matrix <- assay$matrix.T
+#print(genemat@Dim[1])
+#print(genemat@Dim[2])
+datamat <- rep(0,genemat@Dim[1]*genemat@Dim[2])
+#dgcmat <- as.matrix(summary(genemat))
 
-Pangassay <- list(matrix = as.matrix(genemat),
+#print(ncol(dgcmat))
+#print(nrow(dgcmat))
+
+for(j in 1:length(genemat@i)){
+	datamat[genemat@i[j] + 1] = genemat@x[j]
+}
+
+Pangassay <- list(matrix = datamat,
 		  sampleIds = dimnames(genemat)[2],
 		  geneIds = dimnames(genemat)[1])
 # export results

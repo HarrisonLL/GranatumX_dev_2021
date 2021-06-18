@@ -29,7 +29,7 @@ gboxes:
     #    - kind: assay # the "assay" data type by which GranatumX records genomic assays
     #      label: Assay
     #      injectInto: exampleImport # this field is used to access imports from the main script
-    #  exports:
-    #    - kind: assay # the "assay" data type is commonly used for both imports and exports through GranatumX
-    #      extractFrom: PanglaoDB assay # this field is used to access exports from the main script
+      exports:
+        - kind: assay # the "assay" data type is commonly used for both imports and exports through GranatumX
+          extractFrom: PanglaoDB assay # this field is used to access exports from the main script
     #      meta: {}
