@@ -3,13 +3,97 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from deepimpute.deepImpute import deepImpute 
+import requests
+import os
+from os.path import basename
+import loompy
+from tqdm import tqdm
+import shutil
+import copy
+from collections import defaultdict
+
+def download_file(url, output_path):
+    url = url.replace('/fetch', '')  # Work around https://github.com/DataBiosphere/azul/issues/2908
+    
+    response = requests.get(url, stream=True)
+    response.raise_for_status()
+    
+    total = int(response.headers.get('content-length', 0))
+    print(f'Downloading to: {output_path}', flush=True)
+    
+    with open(output_path, 'wb') as f:
+        with tqdm(total=total, unit='B', unit_scale=True, unit_divisor=1024) as bar:
+            for chunk in response.iter_content(chunk_size=1024):
+                size = f.write(chunk)
+                bar.update(size)
+
+
+def iterate_matrices_tree(tree, keys=()):
+    if isinstance(tree, dict):
+        for k, v in tree.items():
+            yield from iterate_matrices_tree(v, keys=(*keys, k))
+    elif isinstance(tree, list):
+        for file in tree:
+            yield keys, file
+    else:
+        assert False
+
+
+
+def download_data(ProjectID, gn):
+    # destroy if exits, and then create ./tmp_datasets directory
+    dirpath = './tmp_datasets'
+    if os.path.exists(dirpath) and os.path.isdir(dirpath):
+        shutil.rmtree(dirpath)
+    os.mkdir(dirpath)
+
+    project_uuid = ProjectID
+    catalog = 'dcp6'
+    endpoint_url = f'https://service.azul.data.humancellatlas.org/index/projects/{project_uuid}'
+    save_location = dirpath
+
+
+    try:
+        response = requests.get(endpoint_url, params={'catalog': catalog})
+        response.raise_for_status()
+
+        response_json = response.json()
+        project = response_json['projects'][0]
+
+        file_urls = set()
+        for key in ('matrices', 'contributorMatrices'):
+            tree = project[key]
+            for path, file_info in iterate_matrices_tree(tree):
+                url = file_info['url']
+                if url not in file_urls:
+                    dest_path = os.path.join(save_location, file_info['name'])
+                    download_file(url, dest_path)
+                    file_urls.add(url)
+        print("Finished downloading!", flush = True)
+    except requests.exceptions.HTTPError:
+        print("Invalid ID entered. Please try again.")
+        gn.commit()
+
 
 
 def main():
     gn = granatum_sdk.Granatum()
 
+    download_data('4a95101c-9ffc-4f30-a809-f04518a23803', gn)
+
+    os.chdir('./tmp_datasets')
+    #print(len(assay['matrix']),flush = True)
+    #print(len(assay['sampleIds']), flush = True)
+
+    filename = 't-cell-activation-human-blood-10XV2.loom'
+    ds = loompy.connect(filename)
+
+    print('loading assay...', flush = True)
+
     assay = gn.get_import("assay")
-    data = np.array(assay.get("matrix")).T
+    assay['geneIds'] = ds.ra["Gene"].tolist()
+    assay['sampleIds'] = ds.ca["CellID"].tolist()
+    data = ds[:,:].T
 
     seed = gn.get_arg("seed")
     checkbox = gn.get_arg("use_auto_limit")
@@ -66,6 +150,8 @@ def main():
     )
 
     gn.add_result(message, data_type="markdown")
+
+    print("storing assay...", flush = True)
 
     assay["matrix"] = imputed.T.to_numpy().tolist()
     gn.export_statically(assay, "Imputed assay")
