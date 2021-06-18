@@ -1,32 +1,35 @@
 id: testpackage-{VER}
 meta:
   maintainer:
-    name: Your Name
-    email: your_name@uni.edu
+    name: Robert Yang
+    email: minghaoy@umich.edu
 gboxes: 
   - id: {GBOX}-{VER}
     meta:
-      title: {GBOX} {VER}
-      subtitle: "Example Gbox that serves as a template"
+      title: PanglaoDB data download
+      subtitle: "Downloading data from PanglaoDB"
       description: 
-        This is an example of a Gbox
+        Please upload the Rdata of the sample you want, this Gbox will export them into assay for further analysis.
     endpoints:
       backend:
         type: docker
         image: {GBOX}
         cmd: Rscript ./main.R
     frontend:
-      args:
-        - type: number 
-          injectInto: exampleArgument # this field is used to access arguments from the main script
-          default: 5
-          label: Just an example argument
-          description: "An argument that serves as an example"
-      imports:
-        - kind: assay # the "assay" data type by which GranatumX records genomic assays
-          label: Assay
-          injectInto: exampleImport # this field is used to access imports from the main script
-      exports:
-        - kind: assay # the "assay" data type is commonly used for both imports and exports through GranatumX
-          extractFrom: exampleExport # this field is used to access exports from the main script
-          meta: {}
+      uploadedFiles:
+        - label: PanglaoDB sample Rdata to upload
+          injectInto: assayFile
+    #  args:
+    #    - type: number 
+    #      injectInto: exampleArgument # this field is used to access arguments from the main script
+    #      default: 5
+    #      label: Just an example argument
+    #      description: "An argument that serves as an example"
+    #  imports:
+    #    - kind: assay # the "assay" data type by which GranatumX records genomic assays
+    #      label: Assay
+    #      injectInto: exampleImport # this field is used to access imports from the main script
+    #  exports:
+    #    - kind: assay # the "assay" data type is commonly used for both imports and exports through GranatumX
+    #      extractFrom: PanglaoDB assay # this field is used to access exports from the main script
+    #      meta: {}
