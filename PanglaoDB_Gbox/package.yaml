@@ -1,8 +1,8 @@
 id: testpackage-{VER}
 meta:
   maintainer:
-    name: Robert Yang
-    email: minghaoy@umich.edu
+    name: Robert Yang, Harrison Li
+    email: minghaoy@umich.edu, harrisonliding@gmail.com
 gboxes: 
   - id: {GBOX}-{VER}
     meta:
