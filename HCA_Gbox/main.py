@@ -61,7 +61,7 @@ def export_data(gn):
         "geneIds": ds.ra["Gene"].tolist(),
     }
     print(len(exported_assay["matrix"]), flush=True)
-    print(len(ds.ca["CellID"].tolist(), flush=True)
+    print(len(ds.ca["CellID"].tolist()), flush=True)
     gn.export(exported_assay,  "HCA assay")
     gn.add_result("Successfully exporting HCA data", data_type='markdown')  
     gn.commit()
