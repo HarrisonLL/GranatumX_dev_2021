@@ -51,17 +51,17 @@ def export_data(gn):
         if count == 1:
             break
     
-   # filename = 't-cell-activation-human-blood-10XV2.loom'
-   # ds = loompy.connect(filename)
+    #filename = 't-cell-activation-human-blood-10XV2.loom'
+    #ds = loompy.connect(filename)
 
     print('Converting to assay file...',flush = True)
     exported_assay = {
-        "matrix":  ds[:,:].tolist(),
+        "matrix":  (ds[:,:1000].tolist()),
         "sampleIds": (ds.ca["CellID"].tolist())[:1000],
         "geneIds": ds.ra["Gene"].tolist(),
     }
-    print(len(exported_assay["matrix"]), flush=True)
-    print(len(ds.ca["CellID"].tolist()), flush=True)
+    #print(len(exported_assay["matrix"]), flush=True)
+    #print(len(ds.ca["CellID"].tolist()), flush=True)
     gn.export(exported_assay,  "HCA assay")
     gn.add_result("Successfully exporting HCA data", data_type='markdown')  
     gn.commit()
