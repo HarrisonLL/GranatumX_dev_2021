@@ -10,7 +10,20 @@ source('./granatum_sdk.R')
 # imports can be accessed using keywords specified 
 # in the "injectInto" field of the arguments section
 # of the package.yaml file - in our case, "exampleImport"
-assay_file <- gn_get_uploaded_file_path("assayFile")
+# assay_file <- gn_get_uploaded_file_path("assayFile")
+sra_num <- gn_get_arg("SRA_num")
+srs_num <- gn_get_arg("SRS_num")
+url_head <- "https://panglaodb.se/data_dl.php?"
+url_tail <- "filetype=R&datatype=readcounts"
+url_head <- paste(url_head, a, sep = "sra=")
+url_head <- paste(url_head, b, sep = "&srs=")
+url_link = paste(url_head, url_tail, sep = "&")
+
+file_path = "./tmp_dataset"
+file_name = paste
+
+download.file(url_link, "E:\\PanglaoDB\\sampledata.Rdata")
+
 tmp <- load(assay_file)
 genemat <- get(tmp)
 
@@ -33,7 +46,7 @@ datamat <- rep(0,genemat@Dim[1]*genemat@Dim[2])
 for(j in 1:length(genemat@i)){
 	datamat[genemat@i[j] + 1] = genemat@x[j]
 }
-
+dim(datamat) <- c(genemat@Dim[1],genemat@Dim[2])
 Pangassay <- list(matrix = datamat,
 		  sampleIds = dimnames(genemat)[2],
 		  geneIds = dimnames(genemat)[1])

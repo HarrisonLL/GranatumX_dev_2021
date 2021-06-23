@@ -8,23 +8,25 @@ gboxes:
     meta:
       title: PanglaoDB data download
       subtitle: "Downloading data from PanglaoDB"
-      description: 
-        Please upload the Rdata of the sample you want, this Gbox will export them into assay for further analysis.
+      description: ScRNA raw data store on PanglaoDB database can be accessed and downloaded here. If you want to perform analysis on that, please go to the PanglaoDB website (https://panglaodb.se/samples.html), find the raw sample data you want, and then record the SRA and SRS numbers to download the certain data to GranatumX. This Gbox will export them into assay for further analysis.
     endpoints:
       backend:
         type: docker
         image: {GBOX}
         cmd: Rscript ./main.R
     frontend:
-      uploadedFiles:
-        - label: PanglaoDB sample Rdata to upload
-          injectInto: assayFile
-    #  args:
-    #    - type: number 
-    #      injectInto: exampleArgument # this field is used to access arguments from the main script
-    #      default: 5
-    #      label: Just an example argument
-    #      description: "An argument that serves as an example"
+            #uploadedFiles:
+            #- label: PanglaoDB sample Rdata to upload
+            #injectInto: assayFile
+      args:
+        - type: text 
+          injectInto: SRA_num # this field is used to access arguments from the main script
+          default: SRA553822
+          label: NCBI SRA Submission Identifier (e.g. SRA553822)
+        - type: text
+          injectInto: SRS_num
+          default: SRS2119548
+          label: NCBI SRS Sample Identifier (e.g. SRS2119548)
     #  imports:
     #    - kind: assay # the "assay" data type by which GranatumX records genomic assays
     #      label: Assay
