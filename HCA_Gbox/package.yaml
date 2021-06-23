@@ -53,6 +53,6 @@ gboxes:
           default: '4a95101c-9ffc-4f30-a809-f04518a23803'
           injectInto: PID
           description: Please visit the HCA webpage to pick a project to start. Enter corresponding project ID.The URL:https://data.humancellatlas.org/explore/projects
-          #exports:
-          # - kind: assay
-          # extractFrom: HCA assay
+      exports:
+        - kind: assay
+          extractFrom: HCA assay

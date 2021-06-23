@@ -7,6 +7,8 @@ from tqdm import tqdm
 import shutil
 import copy
 from collections import defaultdict
+import pandas as pd
+import numpy as np
 
 
 def download_file(url, output_path):
@@ -40,25 +42,28 @@ def export_data(gn):
     os.chdir('./tmp_datasets')
     #print(len(assay['matrix']),flush = True)
     #print(len(assay['sampleIds']), flush = True)
+    ds = None
+    count = 0
+    for file in os.listdir("./"):
+        if file.endswith(".loom"):
+            ds = loompy.connect(file)
+            count += 1
+        if count == 1:
+            break
+    
+   # filename = 't-cell-activation-human-blood-10XV2.loom'
+   # ds = loompy.connect(filename)
 
-    filename = 't-cell-activation-human-blood-10XV2.loom'
-    ds = loompy.connect(filename)
-    tmp = ds[:,:].tolist()
-
-    HCAassay = defaultdict(list)
-
-    print('Storing Data...', flush = True)
-    HCAassay['matrix'] = tmp
-    HCAassay['geneIds'] = ds.ra["Gene"].tolist()
-    HCAassay['sampleIds'] = ds.ca["CellID"].tolist()
-    print('Success!',flush = True)
-
-    print('Exporting data... May take long:>', flush = True)
-
-    #assay_export_name = "[A]{}".format(basename(filename))
-    gn.export(HCAassay,"HCA assay")
-    gn.add_result("Successfully loading HCA data", data_type='markdown')
-
+    print('Converting to assay file...',flush = True)
+    exported_assay = {
+        "matrix":  ds[:,:].tolist(),
+        "sampleIds": (ds.ca["CellID"].tolist())[:1000],
+        "geneIds": ds.ra["Gene"].tolist(),
+    }
+    print(len(exported_assay["matrix"]), flush=True)
+    print(len(ds.ca["CellID"].tolist(), flush=True)
+    gn.export(exported_assay,  "HCA assay")
+    gn.add_result("Successfully exporting HCA data", data_type='markdown')  
     gn.commit()
 
 
@@ -93,6 +98,7 @@ def download_data(ProjectID, gn):
                     file_urls.add(url)
         print("Finished downloading!", flush = True)
         export_data(gn)
+    
     except requests.exceptions.HTTPError:
         print("Invalid ID entered. Please try again.")
         gn.commit()
