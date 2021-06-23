@@ -48,16 +48,19 @@ def export_data(gn):
         if file.endswith(".loom"):
             ds = loompy.connect(file)
             count += 1
-        if count == 1:
+        if count == 2:
+            print(file)
             break
-    
     #filename = 't-cell-activation-human-blood-10XV2.loom'
     #ds = loompy.connect(filename)
 
     print('Converting to assay file...',flush = True)
+    length = len(ds[0, :])
+    print('Choose 1000 cells out of %i'%length, flush=True)
+    indices = sorted(np.random.choice(length,1000, replace=False))
     exported_assay = {
-        "matrix":  (ds[:,:1000].tolist()),
-        "sampleIds": (ds.ca["CellID"].tolist())[:1000],
+        "matrix":  (ds[:,indices].tolist()),
+        "sampleIds": ((ds.ca["CellID"])[indices].tolist()),
         "geneIds": ds.ra["Gene"].tolist(),
     }
     #print(len(exported_assay["matrix"]), flush=True)
