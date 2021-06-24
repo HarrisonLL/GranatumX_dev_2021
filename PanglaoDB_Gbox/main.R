@@ -45,7 +45,7 @@ genemat <- get(tmp)
 #print(genemat@Dim[1])
 #print(genemat@Dim[2])
 
-cell_nums = 3000
+cell_nums = 10000
 
 datamat <- rep(0,genemat@Dim[1]*cell_nums)
 #dgcmat <- as.matrix(summary(genemat))
@@ -53,24 +53,34 @@ datamat <- rep(0,genemat@Dim[1]*cell_nums)
 #print(ncol(dgcmat))
 #print(nrow(dgcmat))
 
-for(j in 1:length(genemat@i)){
-	if (genemat@i[j] + 1 >genemat@Dim[1] * cell_nums){
-       		break
-	}	
-	datamat[genemat@i[j] + 1] = genemat@x[j]
+col_num <- 1
+prev_idx <- 0
+index_ptr <- 1
+
+while(col_num < cell_nums){
+	if ( genemat@i[index_ptr] + 1 < prev_idx ){
+		col_num <- col_num + 1
+	}
+	prev_idx <- genemat@i[index_ptr] + 1 
+	datamat[genemat@Dim[1]*(col_num - 1) + prev_idx] <- genemat@x[index_ptr]
+	index_ptr <- index_ptr + 1
 }
 
 print("dimension transform")
-
-dim(datamat) <- c(genemat@Dim[1],cell_nums)
-
+datamat = matrix(datamat, ncol = cell_nums)
+#dim(datamat) <- c(genemat@Dim[1],cell_nums)
 #print(ncol(datamat))
 #print(nrow(datamat))
-print(dimnames(genemat)[2])
 
-Pangassay <- list(matrix = datamat,
-		  sampleIds = (dimnames(genemat)[[2]])[1:cell_nums],
-		  geneIds = dimnames(genemat)[[1]])
+###############################################
+#Random select columns
+export_data = as.data.frame(datamat)
+random_cols = sample(ncol(export_data), 3000)
+output = as.matrix(export_data[,random_cols])
+###############################################
+Pangassay <- list(matrix = output,
+		  sampleIds = genemat@Dimnames[[2]][random_cols],
+		  geneIds = genemat@Dimnames[[1]])
 # export results
 # here, we use keywords specified in the "extractFrom"
 # field in the exports section of the package.yaml file - in 
