@@ -4,7 +4,7 @@
 # This single docker image along with its specification (JSON or YAML) is called a "Gpackage".
 
 # Here, the "id" is the ID of the Gpackage. It can be any string that can uniquely identify the Gpackage.
-id: HTAN_test1:1
+id: htan_test1:1
 # This "meta" field in the root is for setting up the *default* metadata for all the Gboxes in this Gpackage. A lot of the time,
 # all Gboxes in a Gpackage share the same maintainer (and maybe citations, etc.). Instead of repeating the same metadata under
 # every Gbox, the DRY (don't-repeat-yourself) way of doing it is to put the default metadata here and omit these fields in each
@@ -21,7 +21,7 @@ meta:
 gboxes:
 
         # This "id" is the ID of the Gbox. It can be any string that can uniquely identify the Gbox.
-  - id: HTAN_test1-1
+  - id: htan_test1-1
 
     # This "meta" field is the meta field for the Gbox
     meta:
