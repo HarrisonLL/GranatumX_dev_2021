@@ -53,7 +53,7 @@ def download_data(SID, gn):
     # TO-DO:
     # add try except here for invalid ID
     entity = syn.get("syn24181451", downloadLocation=dirpath)
-    
+    print("Download file path is:" + entity.path, flush=True)
     # TO-DO:
     # modify the function to make export correctly
     # export_data(gn)
