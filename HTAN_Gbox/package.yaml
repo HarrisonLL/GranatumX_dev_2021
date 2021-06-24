@@ -4,7 +4,7 @@
 # This single docker image along with its specification (JSON or YAML) is called a "Gpackage".
 
 # Here, the "id" is the ID of the Gpackage. It can be any string that can uniquely identify the Gpackage.
-id: hca_test1:1
+id: HTAN_test1:1
 # This "meta" field in the root is for setting up the *default* metadata for all the Gboxes in this Gpackage. A lot of the time,
 # all Gboxes in a Gpackage share the same maintainer (and maybe citations, etc.). Instead of repeating the same metadata under
 # every Gbox, the DRY (don't-repeat-yourself) way of doing it is to put the default metadata here and omit these fields in each
@@ -21,14 +21,14 @@ meta:
 gboxes:
 
         # This "id" is the ID of the Gbox. It can be any string that can uniquely identify the Gbox.
-  - id: hca_test1-1
+  - id: HTAN_test1-1
 
     # This "meta" field is the meta field for the Gbox
     meta:
       title: HTAN Data Downloading
       subtitle: "download data to our server"
       description: 
-        Choosee a  dataset and we will download data to our server from the Human Tumor ATLAS Network.
+        Choosee a dataset and we will download data to our server from the Human Tumor ATLAS Network.
 
     # The "endpoints" are the backend hooks for GranatumX core to recognize. Currently only the "backend" endpoint is implemented.
     endpoints:
@@ -55,4 +55,4 @@ gboxes:
           description: Please provide Synapse ID.
       exports:
         - kind: assay
-          extractFrom: HCA assay
+          extractFrom: HTAN assay
