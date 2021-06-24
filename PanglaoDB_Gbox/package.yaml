@@ -15,9 +15,9 @@ gboxes:
         image: {GBOX}
         cmd: Rscript ./main.R
     frontend:
-            #uploadedFiles:
-            #- label: PanglaoDB sample Rdata to upload
-            #injectInto: assayFile
+      uploadedFiles:
+        - label: PanglaoDB sample Rdata to upload
+          injectInto: assayFile
       args:
         - type: text 
           injectInto: SRA_num # this field is used to access arguments from the main script
