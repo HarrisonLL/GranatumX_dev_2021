@@ -18,6 +18,7 @@ gboxes:
       uploadedFiles:
         - label: PanglaoDB sample Rdata to upload
           injectInto: assayFile
+          optional: true
       args:
         - type: text 
           injectInto: SRA_num # this field is used to access arguments from the main script

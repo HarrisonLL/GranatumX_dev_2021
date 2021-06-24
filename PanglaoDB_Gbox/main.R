@@ -24,9 +24,13 @@ file_path = "./"
 file_name = paste(sra_num, srs_num, sep = "-")
 file_name = paste(file_name, "Rdata", sep = ".")
 dl_target = paste(file_path, file_name, sep = "")
-#download.file(url_link, dl_target, mode = "wget")
+#download.file(url_link, dl_target, mode = "wb")
+#system("wget https://panglaodb.se/data_dl.php?sra=SRA553822&srs=SRS2119548&filetype=R&datatype=readcounts")
+#dir()
 
 #tmp <- load(file_name)
+
+#tmp <- load("SRA553822_SRS2119548.sparse.RData")
 tmp <- load(assay_file)
 genemat <- get(tmp)
 
@@ -41,7 +45,7 @@ genemat <- get(tmp)
 #print(genemat@Dim[1])
 #print(genemat@Dim[2])
 
-cell_nums = 100
+cell_nums = 3000
 
 datamat <- rep(0,genemat@Dim[1]*cell_nums)
 #dgcmat <- as.matrix(summary(genemat))
@@ -59,9 +63,14 @@ for(j in 1:length(genemat@i)){
 print("dimension transform")
 
 dim(datamat) <- c(genemat@Dim[1],cell_nums)
+
+#print(ncol(datamat))
+#print(nrow(datamat))
+print(dimnames(genemat)[2])
+
 Pangassay <- list(matrix = datamat,
-		  sampleIds = dimnames(genemat)[2][1:cell_nums],
-		  geneIds = dimnames(genemat)[1])
+		  sampleIds = (dimnames(genemat)[[2]])[1:cell_nums],
+		  geneIds = dimnames(genemat)[[1]])
 # export results
 # here, we use keywords specified in the "extractFrom"
 # field in the exports section of the package.yaml file - in 
