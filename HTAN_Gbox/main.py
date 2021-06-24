@@ -10,22 +10,6 @@ import pandas as pd
 import numpy as np
 
 
-def download_file(url, output_path):
-    url = url.replace('/fetch', '')  # Work around https://github.com/DataBiosphere/azul/issues/2908
-    
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
-    
-    total = int(response.headers.get('content-length', 0))
-    print(f'Downloading to: {output_path}', flush=True)
-    
-    with open(output_path, 'wb') as f:
-        with tqdm(total=total, unit='B', unit_scale=True, unit_divisor=1024) as bar:
-            for chunk in response.iter_content(chunk_size=1024):
-                size = f.write(chunk)
-                bar.update(size)
-
-
 def export_data(gn):
     os.chdir('./tmp_datasets')
     #print(len(assay['matrix']),flush = True)
@@ -39,7 +23,7 @@ def export_data(gn):
         if count == 2:
             print(file)
             break
-            
+
     print('Converting to assay file...',flush = True)
     length = len(ds[0, :])
     print('Choose 1000 cells out of %i'%length, flush=True)
@@ -65,9 +49,11 @@ def download_data(SID, gn):
 
     syn = synapseclient.Synapse()
     syn.login("HarrisL", "Hlld@0217")
+
     # TO-DO:
     # add try except here for invalid ID
     entity = syn.get("syn24181451", downloadLocation=dirpath)
+    
     # TO-DO:
     # modify the function to make export correctly
     # export_data(gn)
