@@ -49,10 +49,24 @@ gboxes:
     frontend:
       args:
         - type: text
-          label: Synapse ID
-          default: 'syn24181451'
+          label: Data Matrix Synapse ID 
+          default: 'syn24181474'
           injectInto: SID
-          description: Please provide Synapse ID.
+          description: Please provide Synapse ID of input data matrix.
+
+        - type: text
+          label: Barcode file Synapse ID
+          default: 'syn24181451'
+          injectInto: SID_Barcode
+          description: It's necessary to provide barcode file Synapse ID if it exists.
+          #optional: true
+
+        - type: text
+          label: Gene file Synapse ID
+          default: 'syn24181449'
+          #optional: true
+          injectInto: SID_Gene
+          description: It's necessary to provide gene file Synapse ID if it exists.
       exports:
         - kind: assay
           extractFrom: HTAN assay
