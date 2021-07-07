@@ -86,7 +86,7 @@ def download_data(ProjectID, Species, Organ, gn):
                     name = file_info['name']
                     if  (name.endswith('.loom')) and Organ in name.lower() and Species in name.lower():
                         download_file(url, dest_path)
-                        file_urls.add(url)
+                    file_urls.add(url)
         
         directory= os.listdir('./tmp_datasets')
         if len(directory) == 0:
