@@ -55,7 +55,7 @@ def export_data(gn):
     gn.commit()
 
 
-def download_data(PProjectID, Species, Organ, gn):
+def download_data(ProjectID, Species, Organ, gn):
     # destroy if exits, and then create ./tmp_datasets directory
     dirpath = './tmp_datasets'
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
