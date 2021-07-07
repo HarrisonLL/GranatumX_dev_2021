@@ -40,20 +40,7 @@ def iterate_matrices_tree(tree, keys=()):
 
 def export_data(gn):
     os.chdir('./tmp_datasets')
-    #print(len(assay['matrix']),flush = True)
-    #print(len(assay['sampleIds']), flush = True)
-    ds = None
-    count = 0
-    for file in os.listdir("./"):
-        if file.endswith(".loom"):
-            ds = loompy.connect(file)
-            count += 1
-        if count == 2:
-            print(file)
-            break
-    #filename = 't-cell-activation-human-blood-10XV2.loom'
-    #ds = loompy.connect(filename)
-
+    ds = loompy.connect(os.listdir("./")[0])
     print('Converting to assay file...',flush = True)
     length = len(ds[0, :])
     print('Choose 1000 cells out of %i'%length, flush=True)
@@ -63,14 +50,12 @@ def export_data(gn):
         "sampleIds": ((ds.ca["CellID"])[indices].tolist()),
         "geneIds": ds.ra["Gene"].tolist(),
     }
-    #print(len(exported_assay["matrix"]), flush=True)
-    #print(len(ds.ca["CellID"].tolist()), flush=True)
     gn.export(exported_assay,  "HCA assay")
     gn.add_result("Successfully exporting HCA data", data_type='markdown')  
     gn.commit()
 
 
-def download_data(ProjectID, gn):
+def download_data(PProjectID, Species, Organ, gn):
     # destroy if exits, and then create ./tmp_datasets directory
     dirpath = './tmp_datasets'
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
@@ -97,8 +82,19 @@ def download_data(ProjectID, gn):
                 url = file_info['url']
                 if url not in file_urls:
                     dest_path = os.path.join(save_location, file_info['name'])
-                    download_file(url, dest_path)
-                    file_urls.add(url)
+                    # only download DCP2-processed files with selected organ type and species
+                    name = file_info['name']
+                    if  (name.endswith('.loom')) and Organ in name.lower() and Species in name.lower():
+                        download_file(url, dest_path)
+                        file_urls.add(url)
+        
+        directory= os.listdir('./tmp_datasets')
+        if len(directory) == 0:
+            print("Download unsucessful. The file of interest is not found in the project folder.", flush=True)
+            print("Please check if any mistyping occurs.", flush=True)
+            gn.commit()
+            return
+        
         print("Finished downloading!", flush = True)
         export_data(gn)
     
@@ -109,27 +105,10 @@ def download_data(ProjectID, gn):
 
 def main():
     gn = granatum_sdk.Granatum()
-
-    #assay = gn.get_import('assay')
-    #assay_df = gn.pandas_from_assay(assay)
-
-    #checkbox_value = gn.get_arg('someCheckbox')
-    #number_value = gn.get_arg('someNumber')
-    #seed_value = gn.get_arg('someSeed')
-
-    # markdown_str = f"""\
-    # * checkbox_value = **{checkbox_value}**
-    # * number_value = **{number_value}**
-    # * seed_value = **{seed_value}**
-    # * Shape of the assay = **{assay_df.shape}**"""
-
-    #gn.add_result(markdown_str, data_type='markdown')
-
-    #gn.commit()
-    #print(assay_df.head(),flush = True)
-
-    ProjectID = gn.get_arg('PID')
-    download_data(ProjectID, gn)
+    ProjectID = gn.get_arg('PID').lower()
+    Species = gn.get_arg('SPE').lower()
+    Organ = gn.get_arg('ORG').lower()
+    download_data(ProjectID, Species, Organ, gn)
 
 
 if __name__ == "__main__":

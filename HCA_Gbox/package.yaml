@@ -49,10 +49,22 @@ gboxes:
     frontend:
       args:
         - type: text
-          label: Project Name and ID
+          label: Project ID
           default: '4a95101c-9ffc-4f30-a809-f04518a23803'
           injectInto: PID
           description: Please visit the HCA webpage to pick a project to start. Enter corresponding project ID.The URL:https://data.humancellatlas.org/explore/projects
+        - type: text
+          label: Organ
+          default: 'blood'
+          injectInto: ORG
+          description: Please enter an organ of interest.
+        - type: text
+          label: Species
+          default: 'human'
+          injectInto: SPE
+          description: Please enter species of interest.
+      
+      
       exports:
         - kind: assay
           extractFrom: HCA assay
