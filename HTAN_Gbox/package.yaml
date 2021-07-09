@@ -58,8 +58,7 @@ gboxes:
           label: Synapse IDs of Downloading Files
           default: 'syn24181474;syn24181451;syn24181449'
           injectInto: SIDs
-          description: Please provide the Synapse IDs of the files in a specific sample, separate the files with semicolon(;) if there are more than one file. And
-          please notice that the id is case-sensitive. 
+          description: Please provide the Synapse IDs of the files in a specific sample, separate the files with semicolon(;) if there are more than one file. And please notice that the id is case-sensitive. 
 
       exports:
         - kind: assay

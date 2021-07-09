@@ -43,6 +43,8 @@ def download_data(SIDs, NUM):
 def read_files(file_name):
     file_form = file_name.split(".")[-1]
     label = ''.join(file_name.split(".")[:-1])
+    print(file_form, flush = True)
+    print(label, flush = True)
     if file_form == "mtx":
         Matrix = (scipy.io.mmread(file_name))
         gene_nums = Matrix.shape[0]
@@ -50,15 +52,18 @@ def read_files(file_name):
         data = np.zeros((gene_nums, cell_nums))
         cols = Matrix.col.tolist()
         rows = Matrix.row.tolist()
-        for i in range(len(Matrix.col.tolist())):
+        values = Matrix.data.tolist()
+        for i in range(len(cols)):
             if cols[i] < cell_nums:
-                data[rows[i]][cols[i]] = Matrix.data.tolist()[i]
+                data[rows[i]][cols[i]] = values[i]
+                #if i % 1000 == 0:
+                #    print (data[rows[i]][cols[i]], flush = True)
             else:
                 break
         return data.tolist()
     elif file_form == "tsv":
         df = pd.read_csv(file_name, sep='\t', header = None)
-        return list(barcodes[0])
+        return list(df[0])
     elif file_form == "gz":
         with gzip.open(file_name, 'rb') as f_in:
             with open(label, 'wb') as f_out:
@@ -77,7 +82,7 @@ def export_data(gn, Paths):
     File_names = []
     for i in Paths:
         File_names.append(i.split('/')[-1])
-
+    print(File_names, flush = True)
     print('Converting to assay file...',flush = True)
     if len(File_names) == 3:
         data = read_files(File_names[0])
@@ -85,7 +90,7 @@ def export_data(gn, Paths):
         #df = pd.SparseDataFrame(Matrix)
         #data = df.values.tolist()
 
-        barcodes = read_files(File_names[1])
+        barcodes = read_files(File_names[1])[0:10000]
         genes = read_files(File_names[2])
 
         exported_assay = {
@@ -94,7 +99,7 @@ def export_data(gn, Paths):
             "geneIds": genes
         }
     elif len(File_names) == 1:
-        continue
+        pass
     else:
         print("The input files cannot be processed.", file=sys.stderr)
     #print(len(exported_assay["matrix"]), flush=True)
