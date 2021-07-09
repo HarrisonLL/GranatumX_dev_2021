@@ -42,9 +42,9 @@ def download_data(SIDs, NUM):
     
 def read_files(file_name):
     file_form = file_name.split(".")[-1]
-    label = ''.join(file_name.split(".")[:-1])
-    print(file_form, flush = True)
-    print(label, flush = True)
+    label = '.'.join(file_name.split(".")[:-1])
+    #print(file_form, flush = True)
+    #print(label, flush = True)
     if file_form == "mtx":
         Matrix = (scipy.io.mmread(file_name))
         gene_nums = Matrix.shape[0]
@@ -68,7 +68,7 @@ def read_files(file_name):
         with gzip.open(file_name, 'rb') as f_in:
             with open(label, 'wb') as f_out:
                 shutil.copyfileobj(f_in,f_out)
-        read_files(label)
+        return read_files(label)
     elif file_form == "csv":
         return pd.read_csv(file_name, sep = ',')
     else:
