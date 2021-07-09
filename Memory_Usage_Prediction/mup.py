@@ -11,14 +11,14 @@ import matplotlib.pyplot as plt
 
 def get_ava_memory():
     usage = psutil.virtual_memory()
-    ava_mb = usage[1]/(1024*1024)
-    print("Ava memory (MiB):", ava_mb, flush=True)
+    ava_mb = usage.available/(1024*1024)
+    print("Ava memory (MB):", ava_mb, flush=True)
     return ava_mb
 
 
 def get_peak_memory():
-    PEAK =  int(getrusage(RUSAGE_SELF).ru_maxrss / (1024*1024))
-    print("Peak memory (MiB):", PEAK, flush=True)
+    PEAK =  int(getrusage(RUSAGE_SELF).ru_maxrss * 1.04858 / (1024)) # MiB to MB
+    print("Peak memory (MB):", PEAK, flush=True)
     return PEAK
 
 
