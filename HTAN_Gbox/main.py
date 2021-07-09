@@ -1,7 +1,6 @@
 import granatum_sdk
 import os
-#from os.path import basename
-#import loompy
+import sys
 from tqdm import tqdm
 import shutil
 import copy
@@ -10,48 +9,9 @@ import pandas as pd
 import numpy as np
 import scipy.io
 import scipy.sparse
+import gzip
 
-
-def export_data(gn):
-    os.chdir('./tmp_datasets')
-    print(os.getcwd(),flush = True)
-    #print(len(assay['matrix']),flush = True)
-    #print(len(assay['sampleIds']), flush = True)
-    #ds = None
-    #count = 0
-    #for file in os.listdir("./"):
-    #    if file.endswith(".loom"):
-    #        ds = loompy.connect(file)
-    #        count += 1
-    #    if count == 2:
-    #        print(file)
-    #        break
-    
-    print('Converting to assay file...',flush = True)
-    #length = len(ds[0, :])
-    Matrix = (scipy.io.mmread('HTAPP-272-SMP-4831_none_channel1_matrix.mtx'))
-    #B = Matrix.todense()
-    df = pd.SparseDataFrame(Matrix)
-    data = df.values.tolist()
-    #print('Choose 1000 cells out of %i'%length, flush=True)
-    #indices = sorted(np.random.choice(length,1000, replace=False))
-
-    barcodes = pd.read_csv("HTAPP-272-SMP-4831_none_channel1_barcodes.tsv", sep='\t', header = None) 
-    genes = pd.read_csv("HTAPP-272-SMP-4831_none_channel1_genes.tsv", sep='\t', header = None)
-
-    exported_assay = {
-        "matrix":  data,
-        "sampleIds": list(barcodes[0]),
-        "geneIds": list(genes[0])
-    }
-    #print(len(exported_assay["matrix"]), flush=True)
-    #print(len(ds.ca["CellID"].tolist()), flush=True)
-    gn.export(exported_assay,  "HTAN assay")
-    gn.add_result("Successfully exporting HTAN data", data_type='markdown')  
-    gn.commit()
-
-
-def download_data(SID, gn):
+def download_data(SIDs, NUM):
     # destroy if exits, and then create ./tmp_datasets directory
     dirpath = './tmp_datasets'
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
@@ -61,25 +21,98 @@ def download_data(SID, gn):
     syn = synapseclient.Synapse()
     syn.login("HarrisL", "Hlld@0217")
 
-    # TO-DO:
+    SID_list = SIDs.replace(' ', '').split(";")
+
+    if len(SID_list) != NUM:
+        print("Error input, the number of IDs doesn't consistent with ID input.", file=sys.stderr)
+
     # add try except here for invalid ID
-    entity = syn.get("syn24181451", downloadLocation=dirpath)
-    entity2 = syn.get("syn24181449", downloadLocation=dirpath)
-    entity3 = syn.get("syn24181474", downloadLocation=dirpath)
-    print("Download barcode file path is:" + entity.path, flush=True)
-    print("Download gene file path is:" + entity2.path, flush=True) 
-    print("Download matrix file path is:" + entity3.path, flush=True) 
-    # TO-DO:
-    # modify the function to make export correctly
-    export_data(gn)
+
+    Paths = []
+
+    try:
+        for i in range(NUM):
+            entity = syn.get(SID_list[i], downloadLocation=dirpath)
+            Paths.append(entity.path)
+            print("Download barcode file path is:" + entity.path, flush=True)
+    except ValueError:
+        print("Invalid Synapse ID, please double check and copy the ID directly from the website.")
+
+    return Paths
+    
+def read_files(file_name):
+    file_form = file_name.split(".")[-1]
+    label = ''.join(file_name.split(".")[:-1])
+    if file_form == "mtx":
+        Matrix = (scipy.io.mmread(file_name))
+        gene_nums = Matrix.shape[0]
+        cell_nums = 10000
+        data = np.zeros((gene_nums, cell_nums))
+        cols = Matrix.col.tolist()
+        rows = Matrix.row.tolist()
+        for i in range(len(Matrix.col.tolist())):
+            if cols[i] < cell_nums:
+                data[rows[i]][cols[i]] = Matrix.data.tolist()[i]
+            else:
+                break
+        return data.tolist()
+    elif file_form == "tsv":
+        df = pd.read_csv(file_name, sep='\t', header = None)
+        return list(barcodes[0])
+    elif file_form == "gz":
+        with gzip.open(file_name, 'rb') as f_in:
+            with open(label, 'wb') as f_out:
+                shutil.copyfileobj(f_in,f_out)
+        read_files(label)
+    elif file_form == "csv":
+        return pd.read_csv(file_name, sep = ',')
+    else:
+        print("Sorry the file format is not supported currently, please contact the maintainer if you still want to use it.", file=sys.stderr)
+
+def export_data(gn, Paths):
+    os.chdir('./tmp_datasets')
+    print(os.getcwd(),flush = True)
+    
+    print('Identifying file type...',flush = True)
+    File_names = []
+    for i in Paths:
+        File_names.append(i.split('/')[-1])
+
+    print('Converting to assay file...',flush = True)
+    if len(File_names) == 3:
+        data = read_files(File_names[0])
+        #B = Matrix.todense()
+        #df = pd.SparseDataFrame(Matrix)
+        #data = df.values.tolist()
+
+        barcodes = read_files(File_names[1])
+        genes = read_files(File_names[2])
+
+        exported_assay = {
+            "matrix":  data,
+            "sampleIds": barcodes,
+            "geneIds": genes
+        }
+    elif len(File_names) == 1:
+        continue
+    else:
+        print("The input files cannot be processed.", file=sys.stderr)
+    #print(len(exported_assay["matrix"]), flush=True)
+    #print(len(ds.ca["CellID"].tolist()), flush=True)
+    gn.export(exported_assay,  "HTAN assay")
+    gn.add_result("Successfully exporting HTAN data", data_type='markdown')  
     gn.commit()
+
+
 
 
 def main():
     gn = granatum_sdk.Granatum()
 
-    SID = gn.get_arg('SID')
-    download_data(SID, gn)
+    SIDs = gn.get_arg('SIDs')
+    NUM = gn.get_arg("NUM")
+    Paths = download_data(SIDs, NUM)
+    export_data(gn, Paths)
 
 
 if __name__ == "__main__":

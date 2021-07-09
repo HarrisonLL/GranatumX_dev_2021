@@ -48,25 +48,19 @@ gboxes:
     # Again, refer to <GranatumX_root>/gbox_installer/types/index.d.ts for the exact schema.
     frontend:
       args:
-        - type: text
-          label: Data Matrix Synapse ID 
-          default: 'syn24181474'
-          injectInto: SID
-          description: Please provide Synapse ID of input data matrix.
+        - type: number
+          label: Number of Files to Download
+          default: 3
+          injectInto: NUM
+          description: Please provide the number of files for a specific sample.
 
         - type: text
-          label: Barcode file Synapse ID
-          default: 'syn24181451'
-          injectInto: SID_Barcode
-          description: It's necessary to provide barcode file Synapse ID if it exists.
-          #optional: true
+          label: Synapse IDs of Downloading Files
+          default: 'syn24181474;syn24181451;syn24181449'
+          injectInto: SIDs
+          description: Please provide the Synapse IDs of the files in a specific sample, separate the files with semicolon(;) if there are more than one file. And
+          please notice that the id is case-sensitive. 
 
-        - type: text
-          label: Gene file Synapse ID
-          default: 'syn24181449'
-          #optional: true
-          injectInto: SID_Gene
-          description: It's necessary to provide gene file Synapse ID if it exists.
       exports:
         - kind: assay
           extractFrom: HTAN assay
