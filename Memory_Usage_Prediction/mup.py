@@ -28,7 +28,7 @@ def get_peak_memory():
 def generate_data_matrix(cell_sizes, gene_sizes, percent_nz):
     datasets = {}
     for percent in percent_nz:
-        percent = percent / 10
+        percent = percent / 100
         for csize in cell_sizes:
             for gsize in gene_sizes:
                 matrix = np.zeros((csize*gsize,))
@@ -36,7 +36,7 @@ def generate_data_matrix(cell_sizes, gene_sizes, percent_nz):
                 for i in indices:
                     matrix[i] = np.random.randint(0,10) # FIX ME
                 matrix = matrix.reshape((gsize, csize))
-                datasets[(gsize, csize, percent)] = matrix
+                datasets[(gsize, csize, percent*100)] = matrix
     return datasets
     
 
