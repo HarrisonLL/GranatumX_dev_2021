@@ -70,11 +70,13 @@ def model_fitting(X,y):
 
     poly = PolynomialFeatures(degree=2)
     X_new2 = poly.fit_transform(X_new1)
+    reg = LinearRegression().fit(X_new2, y)
     y_pred2 = reg.predict(X_new2)
     mse2 = mean_squared_error(y, y_pred2)
 
     poly = PolynomialFeatures(degree=3)
     X_new3 = poly.fit_transform(X_new1)
+    reg = LinearRegression().fit(X_new3, y)
     y_pred3 = reg.predict(X_new3)
     mse3 = mean_squared_error(y, y_pred3)
     return mse1, mse2, mse3
