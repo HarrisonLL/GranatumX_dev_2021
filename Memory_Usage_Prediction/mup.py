@@ -84,9 +84,9 @@ def main():
     
     ava_mb = get_ava_memory()
     memory_data = []
-    cell_sizes = [500, 1000]
+    cell_sizes = [1000,5000]
     gene_sizes = [500, 1000]
-    percent_nz = [0.01, 0.1, 0.5, 1, 10]
+    percent_nz = [1, 10]
     datasets = generate_data_matrix(cell_sizes, gene_sizes, percent_nz)
     for data in datasets.values():
         PEAK = run_deep_impute(pd.DataFrame(data.T))
