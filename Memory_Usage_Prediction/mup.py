@@ -32,7 +32,7 @@ def generate_data_matrix(cell_sizes, gene_sizes, percent_nz):
         for csize in cell_sizes:
             for gsize in gene_sizes:
                 matrix = np.zeros((csize*gsize,))
-                indices = np.random.randint(0,csize*gsize,size=int(csize*gsize*percent))
+                indices = np.random.choice(csize*gsize,size=int(csize*gsize*percent),replace=False)
                 for i in indices:
                     matrix[i] = np.random.randint(0,10) # FIX ME
                 matrix = matrix.reshape((gsize, csize))
@@ -84,9 +84,9 @@ def main():
     
     ava_mb = get_ava_memory()
     memory_data = []
-    cell_sizes = [500, 1000, 5000, 10000, 15000, 20000]
-    gene_sizes = [500, 1000, 5000, 10000, 15000, 20000]
-    percent_nz = [0.01, 0.1, 0.5, 1, 10, 20, 50]
+    cell_sizes = [500, 1000]
+    gene_sizes = [500, 1000]
+    percent_nz = [0.01, 0.1, 0.5, 1, 10]
     datasets = generate_data_matrix(cell_sizes, gene_sizes, percent_nz)
     for data in datasets.values():
         PEAK = run_deep_impute(pd.DataFrame(data.T))
