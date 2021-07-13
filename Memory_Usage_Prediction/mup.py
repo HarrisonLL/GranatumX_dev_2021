@@ -34,7 +34,7 @@ def generate_data_matrix(cell_sizes, gene_sizes, percent_nz):
                 matrix = np.zeros((csize*gsize,))
                 indices = np.random.choice(csize*gsize,size=int(csize*gsize*percent),replace=False)
                 for i in indices:
-                    matrix[i] = np.random.randint(0,10) # FIX ME
+                    matrix[i] = np.random.randint(0,10,dtype=np.uint8) # FIX ME
                 matrix = matrix.reshape((gsize, csize))
                 datasets[(gsize, csize, percent*100)] = matrix
     return datasets
