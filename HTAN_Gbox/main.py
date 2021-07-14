@@ -10,6 +10,7 @@ import numpy as np
 import scipy.io
 import scipy.sparse
 import gzip
+import gc
 
 def download_data(SIDs, NUM):
     # destroy if exits, and then create ./tmp_datasets directory
@@ -48,19 +49,21 @@ def read_files(file_name):
     if file_form == "mtx":
         Matrix = (scipy.io.mmread(file_name))
         gene_nums = Matrix.shape[0]
-        cell_nums = 10000
-        data = np.zeros((gene_nums, cell_nums))
+        cell_nums = Matrix.shape[1]
+        #data = np.zeros((gene_nums, cell_nums))
         cols = Matrix.col.tolist()
         rows = Matrix.row.tolist()
         values = Matrix.data.tolist()
-        for i in range(len(cols)):
-            if cols[i] < cell_nums:
-                data[rows[i]][cols[i]] = values[i]
+
+        #for i in range(len(cols)):
+        #    if cols[i] < cell_nums:
+        #        data[rows[i]][cols[i]] = values[i]
                 #if i % 1000 == 0:
                 #    print (data[rows[i]][cols[i]], flush = True)
-            else:
-                break
-        return data.tolist()
+        #    else:
+        #        break
+        #return data.tolist()
+        return gene_nums, cell_nums, values, rows, cols
     elif file_form == "tsv":
         df = pd.read_csv(file_name, sep='\t', header = None)
         return list(df[0])
@@ -76,35 +79,61 @@ def read_files(file_name):
 
 def export_data(gn, Paths):
     os.chdir('./tmp_datasets')
-    print(os.getcwd(),flush = True)
+    #print(os.getcwd(),flush = True)
     
     print('Identifying file type...',flush = True)
     File_names = []
     for i in Paths:
         File_names.append(i.split('/')[-1])
-    print(File_names, flush = True)
+    #print(File_names, flush = True)
     print('Converting to assay file...',flush = True)
     if len(File_names) == 3:
-        data = read_files(File_names[0])
+        gene_nums, cell_nums, values, rows, cols = read_files(File_names[0])
         #B = Matrix.todense()
         #df = pd.SparseDataFrame(Matrix)
         #data = df.values.tolist()
+        start = 0
+        step = 5000
+        count = 1
+        while start < cell_nums:
+            print("Start to export "+str(count)+" chunk", flush = True)
+            end = start + step - 1
+            if end < cell_nums:
+                data = np.zeros((gene_nums,step))
+            else:
+                end = cell_nums - 1
+                data = np.zeros((gene_nums, end - start + 1))
+            
+            for i in range(len(cols)):
+                if cols[i] >= start and cols[i] <= end:
+                    data[rows[i]][cols[i]] = values[i]
+                else:
+                    break
 
-        barcodes = read_files(File_names[1])[0:10000]
-        genes = read_files(File_names[2])
+            barcodes = read_files(File_names[1])[start:end + 1]
+            genes = read_files(File_names[2])
 
-        exported_assay = {
-            "matrix":  data,
-            "sampleIds": barcodes,
-            "geneIds": genes
-        }
+            exported_assay = {
+                "matrix":  data.tolist(),
+                "sampleIds": barcodes,
+                "geneIds": genes
+            }
+            assay_name = 'HTAN assay' + str(count)
+            gn.export_statically(exported_assay, assay_name)
+            count += 1
+            del data, exported_assay
+            gc.collect()
+            start = end
+            print("Finished!", flush = True)
+            if count == 5:
+                break
     elif len(File_names) == 1:
         pass
     else:
         print("The input files cannot be processed.", file=sys.stderr)
     #print(len(exported_assay["matrix"]), flush=True)
     #print(len(ds.ca["CellID"].tolist()), flush=True)
-    gn.export(exported_assay,  "HTAN assay")
+    #gn.export_statically(exported_assay,  "HTAN assay")
     gn.add_result("Successfully exporting HTAN data", data_type='markdown')  
     gn.commit()
 

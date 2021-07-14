@@ -62,4 +62,8 @@ gboxes:
 
       exports:
         - kind: assay
-          extractFrom: HTAN assay
+          extractFrom: HTAN assay1
+        - kind: assay
+          extractFrom: HTAN assay2
+        - kind: assay
+          extractFrom: HTAN assay3 

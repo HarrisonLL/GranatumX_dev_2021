@@ -5,7 +5,6 @@ COPY . .
 # uncomment the following line if you need to install dependencies
 RUN pip install --upgrade pip
 # then install required dependencies here
-RUN pip install loompy
 RUN pip install synapseclient
 
 RUN ./GBOXtranslateVERinYAMLS.sh
