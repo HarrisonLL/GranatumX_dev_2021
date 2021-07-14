@@ -10,6 +10,7 @@ import psutil
 from resource import getrusage, RUSAGE_SELF
 import matplotlib.pyplot as plt
 import os
+import tracemalloc
 np.random.seed(12345)
 
 
@@ -44,7 +45,7 @@ def run_deep_impute(data):
     imputedData = multinet.predict(data)
     print("============> End Fit and Predict", flush=True)
     PEAK = get_peak_memory()
-    return PEAK
+
 
 """fit linear regression, quadratic linear regression, cubic linear regression
 return mse for each model"""
@@ -73,22 +74,40 @@ def main():
     # read data from ./datasets and perform deepimpute
     # save the result to rows
     rows = []
+    
     for file in os.listdir("./datasets"):
         data = pd.read_csv(os.path.join("./datasets", file))
         data.drop(columns=["Unnamed: 0"],inplace=True)
-        PEAK = run_deep_impute(data.T)
-        memory_data.append(PEAK)
+        tracemalloc.start()
+        run_deep_impute(data.T)
+        _,PEAK = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        memory_data.append(PEAK/1024/1024)
+        print("Peak Usage of the function:" + str(PEAK/1024/1024),flush=True)
         tmp = file.replace(".csv", "").split("_")
         gene_size = tmp[0]
         cell_size = tmp[1]
         percent = tmp[2]
         rows.append([int(gene_size), int(cell_size),float( percent), PEAK])
+        del(data)
+        del(PEAK)
+        del(tmp)
+        del(gene_size)
+        del(cell_size)
+        del(percent)
+
+    
+            #print(dir())
+            #for name in dir():
+               # if not name.startswith('_'):
+                    #del globals()[name]
+        
     # write the data to csv
     performance = pd.DataFrame(data=rows, columns=["Gene Size", "Cell Size", "Percent", "Peak Memory Usage"])
     performance.to_csv("performance.csv")
     # run models
-    mse1, mse2, mse3 = model_fitting(performance.drop(columns=["Peak Memory Usage"]).to_numpy(), memory_data)
-    print(mse1, mse2, mse3)
+    #mse1, mse2, mse3 = model_fitting(performance.drop(columns=["Peak Memory Usage"]).to_numpy(), memory_data)
+    #print(mse1, mse2, mse3)
 
     # run linear regressiongenerate_data_matrix to get coeff
     # reg = LinearRegression().fit(np.array(cell_sizes).reshape(6,1), np.array(memory_data).reshape(6,))
