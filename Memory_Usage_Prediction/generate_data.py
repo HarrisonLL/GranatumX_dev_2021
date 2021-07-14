@@ -13,7 +13,7 @@ def generate_data_matrix(cell_sizes, gene_sizes, percent_nz):
                 matrix = np.zeros((csize*gsize,))
                 indices = np.random.choice(csize*gsize,size=int(csize*gsize*percent),replace=False)
                 for i in indices:
-                    matrix[i] = np.random.randint(low=1,high=10000) # FIX ME
+                    matrix[i] = np.random.randint(low=1,high=100) # FIX ME
                 matrix = matrix.reshape((gsize, csize))
                 datasets[(str(gsize), str(csize), str(percent*100))] = matrix
     return datasets
@@ -26,8 +26,8 @@ def main():
     os.mkdir(dirpath)
 
     cell_sizes = [1000,2000,5000,10000,20000]
-    gene_sizes = [100,500,1000,3000,10000]
-    percent_nz = [1,5,10,20]
+    gene_sizes = [100,500,1000,5000]
+    percent_nz = [5,10,20,40]
     print("Generating datasets..", flush=True)
     datasets = generate_data_matrix(cell_sizes,gene_sizes,percent_nz)
     print("Saving..",flush=True)
