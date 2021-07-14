@@ -1,6 +1,6 @@
 Run the script in commmand line:
 
-$ python3 generate_data.py  #This genearate datasets
+$ python3 generate_data.py  #This genearate 80 datasets
 
 $ python3 run_exp.py  #This runs memory test and generate performance.csv
 
