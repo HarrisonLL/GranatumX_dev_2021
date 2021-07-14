@@ -1,8 +1,10 @@
 Run the script in commmand line:
 
-$ python3 generate_data.py  #This genearate datasets
+$ python3 generate_data.py  #This genearate 80 datasets
 
-$ python3 mup.py  #This runs memory test
+$ python3 run_exp.py  #This runs memory test and generate performance.csv
+
+$ python3 fit_predict.py #This fit the regression model with the data in performance.csv
 
 
 *You may need to  install deepimpute first:
