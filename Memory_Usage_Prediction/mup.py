@@ -9,6 +9,7 @@ import argparse
 import psutil
 from resource import getrusage, RUSAGE_SELF
 import matplotlib.pyplot as plt
+import os
 np.random.seed(12345)
 
 
@@ -20,25 +21,10 @@ def get_ava_memory():
 
 
 def get_peak_memory():
-    PEAK =  int(getrusage(RUSAGE_SELF).ru_maxrss * 1.04858 / (1024)) # MiB to MB
+    PEAK =  getrusage(RUSAGE_SELF).ru_maxrss * 1.04858 / 1024 # MiB to MB
     print("Peak memory (MB):", PEAK, flush=True)
-    return PEAK
+    return PEAK    
 
-
-def generate_data_matrix(cell_sizes, gene_sizes, percent_nz):
-    datasets = {}
-    for percent in percent_nz:
-        percent = percent / 100
-        for csize in cell_sizes:
-            for gsize in gene_sizes:
-                matrix = np.zeros((csize*gsize,))
-                indices = np.random.choice(csize*gsize,size=int(csize*gsize*percent),replace=False)
-                for i in indices:
-                    matrix[i] = np.random.randint(low=1,high=10000) # FIX ME
-                matrix = matrix.reshape((gsize, csize))
-                datasets[(gsize, csize, percent*100)] = matrix
-    return datasets
-    
 
 def run_deep_impute(data):
     # Using custom parameters
@@ -63,7 +49,6 @@ def run_deep_impute(data):
 """fit linear regression, quadratic linear regression, cubic linear regression
 return mse for each model"""
 def model_fitting(X,y):
-    X_new1 = [[x[0], x[1], x[2]] for x in X]
     reg = LinearRegression().fit(X_new1, y)
     y_pred1 = reg.predict(X_new1)
     mse1 = mean_squared_error(y, y_pred1)
@@ -83,20 +68,29 @@ def model_fitting(X,y):
 
 
 def main():
-    
     ava_mb = get_ava_memory()
     memory_data = []
-    cell_sizes = [1000,5000]
-    gene_sizes = [500, 1000]
-    percent_nz = [1, 10]
-    datasets = generate_data_matrix(cell_sizes, gene_sizes, percent_nz)
-    for data in datasets.values():
-        PEAK = run_deep_impute(pd.DataFrame(data.T))
+    # read data from ./datasets and perform deepimpute
+    # save the result to rows
+    rows = []
+    for file in os.listdir("./datasets"):
+        data = pd.read_csv(os.path.join("./datasets", file))
+        data.drop(columns=["Unnamed: 0"],inplace=True)
+        PEAK = run_deep_impute(data.T)
         memory_data.append(PEAK)
-    mse1, mse2, mse3 = model_fitting(datasets.keys(), memory_data)
+        tmp = file.replace(".csv", "").split("_")
+        gene_size = tmp[0]
+        cell_size = tmp[1]
+        percent = tmp[2]
+        rows.append([int(gene_size), int(cell_size),float( percent), PEAK])
+    # write the data to csv
+    performance = pd.DataFrame(data=rows, columns=["Gene Size", "Cell Size", "Percent", "Peak Memory Usage"])
+    performance.to_csv("performance.csv")
+    # run models
+    mse1, mse2, mse3 = model_fitting(performance.drop(columns=["Peak Memory Usage"]).to_numpy(), memory_data)
     print(mse1, mse2, mse3)
 
-    # run linear regression to get coeff
+    # run linear regressiongenerate_data_matrix to get coeff
     # reg = LinearRegression().fit(np.array(cell_sizes).reshape(6,1), np.array(memory_data).reshape(6,))
     # coef = reg.coef_[0]
     # inter = reg.intercept_
