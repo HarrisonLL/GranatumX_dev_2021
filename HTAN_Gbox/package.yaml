@@ -60,10 +60,6 @@ gboxes:
           injectInto: SIDs
           description: Please provide the Synapse IDs of the files in a specific sample, separate the files with semicolon(;) if there are more than one file. And please notice that the id is case-sensitive. 
 
-      exports:
-        - kind: assay
-          extractFrom: HTAN assay1
-        - kind: assay
-          extractFrom: HTAN assay2
-        - kind: assay
-          extractFrom: HTAN assay3 
+          #exports:
+          #- kind: assay
+          #extractFrom: HTAN assay1
