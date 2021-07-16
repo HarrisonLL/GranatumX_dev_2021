@@ -13,6 +13,14 @@ import gzip
 import gc
 import json
 import zipfile
+import psutil
+from sympy import symbols, Eq, solve
+
+# Function to predict chunk size
+def pred_cell_size(coef, genesize, percent, ava_mem):
+    x = symbols('x')
+    eq = Eq(coef[0] + coef[1]*genesize + coef[2]*x + coef[3]*percent + coef[4]*(genesize**2) + coef[5]*(genesize*x) + coef[6]*(genesize*percent)+ coef[7]*(x**2) + coef[8]*(x*percent)+coef[9]*(percent**2)-ava_mem)
+    return [int(sol) for sol in solve(eq) if sol > 0]
 
 # Function to compress chunks
 def zipDir(dirpath, outFullName):
@@ -60,13 +68,14 @@ def read_files(file_name):
     
     if file_form == "mtx":
         Matrix = (scipy.io.mmread(file_name))
-        gene_nums = Matrix.shape[0]
-        cell_nums = Matrix.shape[1]
-        cols = Matrix.col.tolist()
-        rows = Matrix.row.tolist()
-        values = Matrix.data.tolist()
+        return Matrix
+        #gene_nums = Matrix.shape[0]
+        #cell_nums = Matrix.shape[1]
+        #cols = Matrix.col.tolist()
+        #rows = Matrix.row.tolist()
+        #values = Matrix.data.tolist()
         # return coo sparse matrix info
-        return gene_nums, cell_nums, values, rows, cols
+        #return gene_nums, cell_nums, values, rows, cols
     elif file_form == "tsv":
         df = pd.read_csv(file_name, sep='\t', header = None)
         # return the first list of the tsv file
@@ -81,7 +90,7 @@ def read_files(file_name):
     else:
         print("Sorry the file format is not supported currently, please contact the maintainer if you still want to use it.", file=sys.stderr)
 
-def export_data(gn, Paths):
+def export_data(gn, Paths, coef, ava_mem):
     os.chdir('./tmp_datasets')
     
     print('Identifying file type...',flush = True)
@@ -91,63 +100,68 @@ def export_data(gn, Paths):
     
     print('Converting to assay file...',flush = True)
     if len(File_names) == 3:
-        gene_nums, cell_nums, values, rows, cols = read_files(File_names[0])
+        Matrix = read_files(File_names[0])
+        gene_nums = Matrix.shape[0]
+        cell_nums = Matrix.shape[1]
+        #print((gene_nums, cell_nums), flush = True)
+        #tmp = 0
+        #for i in values:
+        #    if i > 0 and i <= 100:
+        #        tmp += 1
+        percent = Matrix.data.shape[0] / (gene_nums * cell_nums)
+        print(percent, flush = True)
+        chunk_size = pred_cell_size(coef, gene_nums, percent, ava_mem)
+        print(chunk_size, flush = True)
         #B = Matrix.todense()
         #df = pd.SparseDataFrame(Matrix)
         #data = df.values.tolist()
         start = 0
-        step = 5000
+        step = chunk_size[0]
         count = 1
         #chunks = []
         chunk_dir = os.path.join(gn.exports_dir,"chunks")
         #print(chunk_dir, flush = True)
         os.mkdir(chunk_dir)
-        print(gn.exports_dir, flush = True)
-        while start < cell_nums - 1:
-            print("Start to export "+str(count)+" chunk", flush = True)
-            end = start + step - 1
-            if end < cell_nums:
-                data = np.zeros((gene_nums,step))
-            else:
-                end = cell_nums - 1
-                data = np.zeros((gene_nums, end - start + 1))
-            
-            for i in range(len(cols)):
-                if cols[i] >= start and cols[i] <= end:
-                    data[rows[i]][cols[i]] = values[i]
-                else:
-                    break
+        #print(gn.exports_dir, flush = True)
+        with tqdm(total = (cell_nums // step) + 1) as pbar:
+            while start < cell_nums:
+                #print("Start to export "+str(count)+" chunk", flush = True)
+                end = start + step
+                if end > cell_nums:
+                    end = cell_nums
+                
+                data = Matrix.tocsr()[:,start:end].todense().tolist()
+                barcodes = read_files(File_names[1])[start:end]
+                genes = read_files(File_names[2])
 
-            barcodes = read_files(File_names[1])[start:end + 1]
-            genes = read_files(File_names[2])
+                exported_assay = {
+                    "matrix":  data,
+                    "sampleIds": barcodes,
+                    "geneIds": genes
+                }
+                #print(count, flush = True)
+                assay_name = 'HTAN assay' + str(count) + '.gz'
+                #print(os.path.join(chunk_dir, assay_name), flush = True)
+                with gzip.open(os.path.join(chunk_dir, assay_name), "wt") as f:
+                    json.dump(exported_assay, f)
+                #chunks.append(json.dumps(exported_assay))
+                #gn.export(exported_assay, assay_name,"assay")
+                #files = os.listdir(chunk_dir)
+                #print(files, flush = True)
 
-            exported_assay = {
-                "matrix":  data.tolist(),
-                "sampleIds": barcodes,
-                "geneIds": genes
-            }
-            print(count, flush = True)
-            assay_name = 'HTAN assay' + str(count)
-            #print(os.path.join(chunk_dir, assay_name), flush = True)
-            with open(os.path.join(chunk_dir, assay_name), "w") as f:
-                json.dump(exported_assay, f)
-            #chunks.append(json.dumps(exported_assay))
-            #gn.export(exported_assay, assay_name,"assay")
-            files = os.listdir(chunk_dir)
-            print(files, flush = True)
-
-            count += 1
-            del data, exported_assay
-            gc.collect()
-            start = end
-            print("Finished!", flush = True)
-            #if count == 3:
-            #    break
+                count += 1
+                del data, exported_assay
+                gc.collect()
+                start = end
+                #print("Finished!", flush = True)
+                #if count == 3:
+                #    break
+                pbar.update(1)
         #gn.export(chunks, "HTAN chunk", "assay")
         output_path = os.path.join(gn.exports_dir, "chunks.zip")
         zipDir(chunk_dir, output_path)
-        files = os.listdir(gn.exports_dir)
-        print(files, flush = True)
+        #files = os.listdir(gn.exports_dir)
+        #print(files, flush = True)
         gn.dynamic_exports.append({"extractFrom": "chunks.zip", "kind": "assay", "meta": None})
 
     elif len(File_names) == 1:
@@ -169,11 +183,17 @@ def export_data(gn, Paths):
 
 def main():
     gn = granatum_sdk.Granatum()
+    
+    df = pd.read_csv("coeffs.csv")
+    coeffs = df.iloc[:1, 1:].values.squeeze().tolist()
+    ava_mem = (psutil.virtual_memory()).available/(1024*1024)
+    #chunk_size = pred_cell_size(coeffs, gene_size, zero_percent, ava_mem)
+   # print(chunk_size, flush = True)
 
     SIDs = gn.get_arg('SIDs')
     NUM = gn.get_arg("NUM")
     Paths = download_data(SIDs, NUM)
-    export_data(gn, Paths)
+    export_data(gn, Paths, coeffs, ava_mem)
 
 
 if __name__ == "__main__":
