@@ -6,6 +6,7 @@ import os
 import tracemalloc
 import csv
 from tqdm import tqdm
+from time import time
 np.random.seed(12345)
 
 
@@ -37,35 +38,46 @@ def run_deep_impute(data):
 
 def main():
     ava_mb = get_ava_memory()
-    memory_data = []
     # read data from ./datasets and perform deepimpute
     # save the result to rows
     rows = []
+    rows2 = []
     for file in tqdm(os.listdir("./datasets")):
         data = pd.read_csv(os.path.join("./datasets", file))
         data.drop(columns=["Unnamed: 0"],inplace=True)
+        
+        begin = time()
         tracemalloc.start()
         run_deep_impute(data.T)
         _,PEAK = tracemalloc.get_traced_memory()
         tracemalloc.stop()
-        memory_data.append(PEAK/1024/1024)
+        end = time()
+        elapse = end - begin
+
         print("Peak Usage of the function:" + str(PEAK/1024/1024),flush=True)
         tmp = file.replace(".csv", "").split("_")
         gene_size = tmp[0]
         cell_size = tmp[1]
         percent = tmp[2]
         rows.append([int(gene_size), int(cell_size),float( percent), PEAK])
+        rows2.append([int(gene_size), int(cell_size),float( percent), elapse])
         del(data)
         del(PEAK)
         del(tmp)
         del(gene_size)
         del(cell_size)
         del(percent)
-        
+        del(begin)
+        del(end)
+        del(elapse)
+
+
     # write the data to csv
     performance = pd.DataFrame(data=rows, columns=["Gene Size", "Cell Size", "Percent", "Peak Memory Usage"])
     performance.to_csv("performance.csv")
 
+    time_performance = pd.DataFrame(data=rows2, columns=["Gene Size", "Cell Size", "Percent", "Time"])
+    time_performance.to_csv("time_performance.csv")
 
 if __name__ == "__main__":
     main()
