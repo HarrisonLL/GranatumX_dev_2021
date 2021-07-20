@@ -129,9 +129,9 @@ def export_data(gn, Paths, coef, ava_mem):
         step = chunk_size[0]
         count = 1
         #chunks = []
-        chunk_dir = os.path.join(gn.exports_dir,"chunks")
+        #chunk_dir = os.path.join(gn.exports_dir,"chunks")
         #print(chunk_dir, flush = True)
-        os.mkdir(chunk_dir)
+        #os.mkdir(chunk_dir)
         #print(gn.exports_dir, flush = True)
         with tqdm(total = (cell_nums // step) + 1) as pbar:
             while start < cell_nums:
@@ -150,7 +150,7 @@ def export_data(gn, Paths, coef, ava_mem):
                     "geneIds": genes
                 }
                 #print(count, flush = True)
-                assay_name = 'HTAN assay' + str(count) + '.gz'
+                assay_name = 'chunk' + str(count)
                 output[assay_name] = compress_assay(exported_assay)
                 #print(os.path.join(chunk_dir, assay_name), flush = True)
                 #with gzip.open(os.path.join(chunk_dir, assay_name), "wt") as f:
@@ -168,12 +168,14 @@ def export_data(gn, Paths, coef, ava_mem):
                 #if count == 3:
                 #    break
                 pbar.update(1)
-        gn.export(output, "HTAN chunk", "assay")
+        #gn.export(output, "HTAN chunk", "assay")
+        with gzip.open(os.path.join(gn.exports_dir,"chunks.gz"),"wt") as f:
+            json.dump(output, f)
         #output_path = os.path.join(gn.exports_dir, "chunks.zip")
         #zipDir(chunk_dir, output_path)
         #files = os.listdir(gn.exports_dir)
         #print(files, flush = True)
-        gn.dynamic_exports.append({"extractFrom": "chunks.zip", "kind": "assay", "meta": None})
+        gn.dynamic_exports.append({"extractFrom": "chunks.gz", "kind": "assay", "meta": None})
 
     elif len(File_names) == 1:
         pass
