@@ -14,7 +14,10 @@ import gc
 import json
 import zipfile
 import psutil
+import base64
 from sympy import symbols, Eq, solve
+from io import StringIO, BytesIO
+
 
 # Function to predict chunk size
 def pred_cell_size(coef, genesize, percent, ava_mem):
@@ -31,6 +34,22 @@ def zipDir(dirpath, outFullName):
         for filename in filenames:
             zip.write(os.path.join(path, filename), os.path.join(fpath, filename))
     zip.close
+
+def compress_assay(exported_assay):
+    tmp = json.dumps(exported_assay)
+    bio = BytesIO()
+    bio.write(tmp.encode('utf-8'))
+    bio.seek(0)
+    stream = BytesIO()
+    compressor = gzip.GzipFile(fileobj=stream, mode = 'w')
+    while True:
+        chunk = bio.read(8192)
+        if not chunk:
+            compressor.close()
+            break
+        compressor.write(chunk)
+    encoded = base64.b64encode(stream.getvalue())
+    return(encoded.decode('utf-8'))
 
 def download_data(SIDs, NUM):
     # destroy if exits, and then create ./tmp_datasets directory
@@ -68,14 +87,9 @@ def read_files(file_name):
     
     if file_form == "mtx":
         Matrix = (scipy.io.mmread(file_name))
+        # return Coo Matrix
         return Matrix
-        #gene_nums = Matrix.shape[0]
-        #cell_nums = Matrix.shape[1]
-        #cols = Matrix.col.tolist()
-        #rows = Matrix.row.tolist()
-        #values = Matrix.data.tolist()
-        # return coo sparse matrix info
-        #return gene_nums, cell_nums, values, rows, cols
+
     elif file_form == "tsv":
         df = pd.read_csv(file_name, sep='\t', header = None)
         # return the first list of the tsv file
@@ -103,18 +117,14 @@ def export_data(gn, Paths, coef, ava_mem):
         Matrix = read_files(File_names[0])
         gene_nums = Matrix.shape[0]
         cell_nums = Matrix.shape[1]
-        #print((gene_nums, cell_nums), flush = True)
-        #tmp = 0
-        #for i in values:
-        #    if i > 0 and i <= 100:
-        #        tmp += 1
-        percent = Matrix.data.shape[0] / (gene_nums * cell_nums)
+        output = {}
+        
+        percent = np.sum(Matrix.data < 101) * 100 / (gene_nums * cell_nums)
         print(percent, flush = True)
+        
         chunk_size = pred_cell_size(coef, gene_nums, percent, ava_mem)
         print(chunk_size, flush = True)
-        #B = Matrix.todense()
-        #df = pd.SparseDataFrame(Matrix)
-        #data = df.values.tolist()
+
         start = 0
         step = chunk_size[0]
         count = 1
@@ -141,9 +151,10 @@ def export_data(gn, Paths, coef, ava_mem):
                 }
                 #print(count, flush = True)
                 assay_name = 'HTAN assay' + str(count) + '.gz'
+                output[assay_name] = compress_assay(exported_assay)
                 #print(os.path.join(chunk_dir, assay_name), flush = True)
-                with gzip.open(os.path.join(chunk_dir, assay_name), "wt") as f:
-                    json.dump(exported_assay, f)
+                #with gzip.open(os.path.join(chunk_dir, assay_name), "wt") as f:
+                #    json.dump(exported_assay, f)
                 #chunks.append(json.dumps(exported_assay))
                 #gn.export(exported_assay, assay_name,"assay")
                 #files = os.listdir(chunk_dir)
@@ -157,9 +168,9 @@ def export_data(gn, Paths, coef, ava_mem):
                 #if count == 3:
                 #    break
                 pbar.update(1)
-        #gn.export(chunks, "HTAN chunk", "assay")
-        output_path = os.path.join(gn.exports_dir, "chunks.zip")
-        zipDir(chunk_dir, output_path)
+        gn.export(output, "HTAN chunk", "assay")
+        #output_path = os.path.join(gn.exports_dir, "chunks.zip")
+        #zipDir(chunk_dir, output_path)
         #files = os.listdir(gn.exports_dir)
         #print(files, flush = True)
         gn.dynamic_exports.append({"extractFrom": "chunks.zip", "kind": "assay", "meta": None})
@@ -168,11 +179,8 @@ def export_data(gn, Paths, coef, ava_mem):
         pass
     else:
         print("The input files cannot be processed.", file=sys.stderr)
-    #print(len(exported_assay["matrix"]), flush=True)
-    #print(len(ds.ca["CellID"].tolist()), flush=True)
     #gn.export_statically(exported_assay,  "HTAN assay")
     gn.add_result("Successfully exporting HTAN data", data_type='markdown')
-    #print(gn.exports_anno_file, flush = True)
     #print(gn.dynamic_exports, flush = True)
     #gn.dynamic_exports = []
     #gn.dynamic_exports.append({"extractFrom": "chunks", "kind": "assay", "meta": None}) 
@@ -187,8 +195,6 @@ def main():
     df = pd.read_csv("coeffs.csv")
     coeffs = df.iloc[:1, 1:].values.squeeze().tolist()
     ava_mem = (psutil.virtual_memory()).available/(1024*1024)
-    #chunk_size = pred_cell_size(coeffs, gene_size, zero_percent, ava_mem)
-   # print(chunk_size, flush = True)
 
     SIDs = gn.get_arg('SIDs')
     NUM = gn.get_arg("NUM")
