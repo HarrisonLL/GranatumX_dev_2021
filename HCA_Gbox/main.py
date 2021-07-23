@@ -83,7 +83,7 @@ def export_data(gn,coeffs,ava_mem):
     print(ava_mem, flush=True)
     print(cell_size, flush=True)
     print(gene_size, flush=True)
-    chunk_size = 1000
+    chunk_size = pred_cell_size(coeffs, gene_size, percent, ava_mem)
     print(chunk_size,flush=True)
 
     if chunk_size >= cell_size:
