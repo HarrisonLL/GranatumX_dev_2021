@@ -1,0 +1,9 @@
+id: scanpynormalization-{VER}
+
+meta:
+  maintainer:
+    name: GranatumX
+    email: lana.garmire.group@gmail.com
+
+gboxes:
+  - ./yamls/scanpy_normalization.yaml
