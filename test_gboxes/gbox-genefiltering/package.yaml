@@ -1,0 +1,9 @@
+id: GeneFiltering-{VER}
+
+meta:
+  maintainer:
+    name: GranatumX
+    email: lana.garmire.group@gmail.com
+
+gboxes:
+  - ./yamls/gene_filtering.yaml
