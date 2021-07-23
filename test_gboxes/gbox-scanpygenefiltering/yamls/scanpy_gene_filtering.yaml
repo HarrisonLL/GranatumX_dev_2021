@@ -1,6 +1,6 @@
 id: ScanpyGeneFiltering-{VER}
 meta:
-  title: Scanpy Gene Filtering {VER}
+  title: Scanpy Gene Filtering - test {VER}
   subtitle: >-
     Remove genes that are expressed too lowly. Extract highly variable genes.
     (Backed by Scanpy)

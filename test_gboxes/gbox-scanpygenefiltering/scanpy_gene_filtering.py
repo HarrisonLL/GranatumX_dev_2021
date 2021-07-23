@@ -2,7 +2,7 @@ import math
 
 import scanpy.api as sc
 import numpy as np
-from granatum_sdk import Granatum
+from granatum_sdk_modified import Granatum
 
 
 def main():

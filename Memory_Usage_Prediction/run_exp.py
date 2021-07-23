@@ -1,83 +1,81 @@
 from deepimpute.multinet import MultiNet
 import pandas as pd
 import numpy as np
+from scipy import sparse
 import psutil
 import os
 import tracemalloc
 import csv
 from tqdm import tqdm
 from time import time
-np.random.seed(12345)
+import gc
+
 
 
 def get_ava_memory():
     usage = psutil.virtual_memory()
     ava_mb = usage.available/(1024*1024)
     print("Ava memory (MB):", ava_mb, flush=True)
-    return ava_mb
+
 
 
 def run_deep_impute(data):
-    # Using custom parameters
+    # Simulate DeepImpute Gbox
     print("Start to Fit and Predict ==============>", flush=True)
-    NN_params = {
-            'learning_rate': 1e-4,
-            'batch_size': 64,
-            'max_epochs': 200,
-            'ncores': 5,
-            'sub_outputdim': 512,
-            'architecture': [
-                {"type": "dense", "activation": "relu", "neurons": 200},
-                {"type": "dropout", "activation": "dropout", "rate": 0.3}]
-        }
-    multinet = MultiNet(**NN_params, verbose=None)
-    multinet.fit(data,cell_subset=1,minVMR=0.5)
-    imputedData = multinet.predict(data)
+    np.random.seed(12345)
+    data = pd.DataFrame(data).T
+    multi = MultiNet()
+    multi.fit(data, NN_lim="auto", cell_subset=1, minVMR=0.5)
+    multi.predict(data, imputed_only=False, policy="restore")
     print("============> End Fit and Predict", flush=True)
 
 
 def main():
-    ava_mb = get_ava_memory()
+
     # read data from ./datasets and perform deepimpute
     # save the result to rows
-    rows = []
-    rows2 = []
-    for file in tqdm(os.listdir("./datasets")):
-        data = pd.read_csv(os.path.join("./datasets", file))
-        data.drop(columns=["Unnamed: 0"],inplace=True)
-        
-        begin = time()
-        tracemalloc.start()
-        run_deep_impute(data.T)
-        _,PEAK = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        end = time()
-        elapse = end - begin
+    with open("performance3.csv", "w") as f:
+        with open("time_performance3.csv", "w") as f2:
+            f.write("Gene Size,Cell Size,Percent,Peak Memory Usage\n")
+            f2.write("Gene Size,Cell Size,Percent,Time\n")
+            count = 0
+            for file in tqdm(sorted(os.listdir("./datasets"))):
+                if 152 <= count < 200:
+                    print(file,flush=True)
+                    get_ava_memory()
+                    file_path = os.path.join("./datasets", file)
+                    data = sparse.load_npz(file_path).todense()
+                    print(data.shape,flush=True)
+                
+                    begin = time()
+                    tracemalloc.start()
+                    run_deep_impute(data)
+                    _,PEAK = tracemalloc.get_traced_memory()
+                    tracemalloc.stop()
+                    end = time()
+                    elapse = end - begin
 
-        print("Peak Usage of the function:" + str(PEAK/1024/1024),flush=True)
-        tmp = file.replace(".csv", "").split("_")
-        gene_size = tmp[0]
-        cell_size = tmp[1]
-        percent = tmp[2]
-        rows.append([int(gene_size), int(cell_size),float( percent), PEAK])
-        rows2.append([int(gene_size), int(cell_size),float( percent), elapse])
-        del(data)
-        del(PEAK)
-        del(tmp)
-        del(gene_size)
-        del(cell_size)
-        del(percent)
-        del(begin)
-        del(end)
-        del(elapse)
+                    print("Peak Usage of the function:" + str(PEAK/1024/1024),flush=True)
+                    tmp = file.replace(".npz", "").split("_")
+                    gene_size = tmp[0]
+                    cell_size = tmp[1]
+                    percent = tmp[2]
+                    f.write(",".join([gene_size, cell_size, percent, str(PEAK/1024/1024)])+ "\n")
+                    f2.write(",".join([gene_size, cell_size, percent, str(elapse)])+ "\n")
+                    del(data)
+                    del(PEAK)
+                    del(tmp)
+                    del(gene_size)
+                    del(cell_size)
+                    del(percent)
+                    del(begin)
+                    del(end)
+                    del(elapse)
+                    gc.collect()
+                count += 1
+    f.close()
+    f2.close()
 
-
-    # write the data to csv
-    performance = pd.DataFrame(data=rows, columns=["Gene Size", "Cell Size", "Percent", "Peak Memory Usage"])
-    performance.to_csv("performance.csv")
-
-    time_performance = pd.DataFrame(data=rows2, columns=["Gene Size", "Cell Size", "Percent", "Time"])
-    time_performance.to_csv("time_performance.csv")
 
 if __name__ == "__main__":
     main()

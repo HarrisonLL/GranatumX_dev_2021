@@ -1,1 +1,1 @@
-granatumx/gbox-scanpygenefiltering
+gbox-scanpygenefiltering-test

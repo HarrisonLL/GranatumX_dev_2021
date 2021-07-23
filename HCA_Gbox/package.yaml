@@ -65,6 +65,6 @@ gboxes:
           description: Please enter species of interest.
       
       
-      exports:
-        - kind: assay
-          extractFrom: HCA assay
+          #exports:
+          #- kind: assay
+          #extractFrom: HCA assay
