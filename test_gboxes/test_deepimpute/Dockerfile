@@ -3,8 +3,8 @@ MAINTAINER "Cedric Arisdakessian" cedric.arisdakessian@gmail.com
 
 WORKDIR /usr/src/app
 
-RUN pip install numpy==1.18.5
-
+#RUN pip install numpy==1.18.5
+RUN pip install --upgrade pip 
 COPY ./requirements.txt .
 RUN pip install --no-cache-dir -r ./requirements.txt
 

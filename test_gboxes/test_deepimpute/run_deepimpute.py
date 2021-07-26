@@ -2,23 +2,13 @@ import granatum_sdk_modified
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from deepimpute.deepImpute import deepImpute 
-import requests
-import os
-from os.path import basename
-import loompy
-from tqdm import tqdm
-import shutil
-import copy
-from collections import defaultdict
-    
+from deepimpute.deepImpute import deepImpute
+
 def main():
-    gn = granatum_sdk.Granatum()
+    gn = granatum_sdk_modified.Granatum()
 
     assay = gn.get_import("assay")
-    assay['geneIds'] = ds.ra["Gene"].tolist()
-    assay['sampleIds'] = ds.ca["CellID"].tolist()
-    data = ds[:,:].T
+    data = np.array(assay.get('matrix')).T
 
     seed = gn.get_arg("seed")
     checkbox = gn.get_arg("use_auto_limit")
