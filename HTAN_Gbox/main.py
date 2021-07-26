@@ -169,13 +169,13 @@ def export_data(gn, Paths, coef, ava_mem):
                 #    break
                 pbar.update(1)
         #gn.export(output, "HTAN chunk", "assay")
-        with gzip.open(os.path.join(gn.exports_dir,"chunks.gz"),"wt") as f:
+        with open(os.path.join(gn.exports_dir,"chunks"),"wt") as f:
             json.dump(output, f)
         #output_path = os.path.join(gn.exports_dir, "chunks.zip")
         #zipDir(chunk_dir, output_path)
         #files = os.listdir(gn.exports_dir)
         #print(files, flush = True)
-        gn.dynamic_exports.append({"extractFrom": "chunks.gz", "kind": "assay", "meta": None})
+        gn.dynamic_exports.append({"extractFrom": "chunks", "kind": "assay", "meta": None})
 
     elif len(File_names) == 1:
         pass
