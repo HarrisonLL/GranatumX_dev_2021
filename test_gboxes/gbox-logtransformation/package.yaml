@@ -1,0 +1,9 @@
+id: logtransformation-{VER}
+
+meta:
+  maintainer:
+    name: GranatumX
+    email: lana.garmire.group@gmail.com
+
+gboxes:
+  - ./yamls/log_transformation.yaml
