@@ -4,15 +4,15 @@ import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr
 
-import keras
+from tensorflow import keras
+import tensorflow as tf
 #from keras import backend as K
 from tensorflow.compat.v1.keras import backend as K
-from keras.models import Model,model_from_json
-from keras.layers import Dense,Dropout,Input
-from keras.callbacks import EarlyStopping
-import keras.losses
+from tensorflow.keras.models import Model,model_from_json
+from tensorflow.keras.layers import Dense,Dropout,Input
+from tensorflow.keras.callbacks import EarlyStopping
+import tensorflow.keras.losses
 
-import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
