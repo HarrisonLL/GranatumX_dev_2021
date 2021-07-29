@@ -25,9 +25,27 @@ def decode_json(jsonstr):
         bio.write(chunk)
     return json.loads(output)
 
+def compress_assay(exported_assay):
+    tmp = json.dumps(exported_assay)
+    bio = BytesIO()
+    bio.write(tmp.encode('utf-8'))
+    bio.seek(0)
+    stream = BytesIO()
+    compressor = gzip.GzipFile(fileobj=stream, mode = 'w')
+    while True:
+        chunk = bio.read(8192)
+        if not chunk:
+            compressor.close()
+            break
+        compressor.write(chunk)
+    encoded = base64.b64encode(stream.getvalue())
+    return(encoded.decode('utf-8'))
+
 def main():
-    gn = granatum_sdk.Granatum()
     start_time = time.time()
+    gn = granatum_sdk.Granatum()
+    output = {}
+    
     #firstly save to chunks
     chunks = gn.get_import("assay")
     print(len(chunks.keys()), flush = True)
@@ -35,6 +53,10 @@ def main():
     #assay = gn.get_import("assay")
     assay = decode_json(chunks["chunk1"])
     data = np.array(assay.get("matrix")).T
+    barcodes = assay.get("sampleIds")
+    genes = assay.get("geneIds")
+    del assay
+    gc.collect()
 
     seed = gn.get_arg("seed")
     checkbox = gn.get_arg("use_auto_limit")
@@ -107,10 +129,19 @@ def main():
 
     #gn.add_result(message, data_type="markdown")
 
-    assay["matrix"] = imputed.T.to_numpy().tolist()
-    gn.export_statically(assay, "Imputed assay")
-
+    exported_assay = {
+                    "matrix":  imputed.T.to_numpy().tolist(),
+                    "sampleIds": barcodes,
+                    "geneIds": genes
+                }
+    output["chunk1"] = compress_assay(exported_assay)
+    #gn.export_statically(assay, "Imputed assay")
+    with open(os.path.join(gn.exports_dir,"chunks"),"wt") as f:
+        json.dump(output, f)
+    gn.dynamic_exports.append({"extractFrom": "chunks", "kind": "assay", "meta": None})
     gn.commit()
+    del imputed, exported_assay
+    gc.collect()
     print("--- %s seconds ---" % (time.time() - start_time), flush = True)
     time.sleep(10)
 
