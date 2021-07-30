@@ -4,6 +4,7 @@ from io import StringIO, BytesIO
 import gzip
 import json
 import gc
+import numpy as np
 
 class granatum_extended(Granatum):
 
@@ -86,7 +87,9 @@ class granatum_extended(Granatum):
         new_file = dict()
         org_num_row = 32738
         sug_num_row = 150
-        for i in range(len(assay)):  # i is the index of old chunk
+        for i in range(len(assay)): 
+            # i is the index of old chunk
+            print("Current working on chunk %s" %i, flush = True)
             chunk = self.decompress_chunk(assay["chunk"+str(i + 1)])
             count = 0  # use count to represent new chunk index
             for j in range(0, org_num_row, sug_num_row):
