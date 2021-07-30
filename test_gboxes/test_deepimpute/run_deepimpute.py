@@ -9,6 +9,7 @@ import gzip
 from io import StringIO, BytesIO
 import base64
 import gc
+import os
 
 def decode_json(jsonstr):
     bio = BytesIO()
@@ -53,10 +54,6 @@ def main():
     #assay = gn.get_import("assay")
     assay = decode_json(chunks["chunk1"])
     data = np.array(assay.get("matrix")).T
-    barcodes = assay.get("sampleIds")
-    genes = assay.get("geneIds")
-    del assay
-    gc.collect()
 
     seed = gn.get_arg("seed")
     checkbox = gn.get_arg("use_auto_limit")
@@ -96,51 +93,52 @@ def main():
     nb_genes = len(set(model.targets.flatten()))
     #nb_genes = np.sum([len(net.targetGenes) for net in model.targets])
     print("finished adding", flush = True)
-    del data
-    gc.collect()
+    #del data
+    #gc.collect()
     def calc_dropout(matrix):
         return np.sum((np.array(matrix) == 0)) * 1. / data.size
 
-   # r, p = model.score(frameddata)
-   # rows, cols = frameddata.shape
+    r, p = model.score(frameddata)
+    rows, cols = frameddata.shape
     print("start to transform", flush = True)
-    #transform data, imputed back
-    #data = data - 1
+    # transform data, imputed back
+    data = data - 1
     imputed = imputed - 1
-    #print("creating message", flush = True)
+    print("creating message", flush = True)
 
-    #message = "\n".join(
-    #    [
-    #        "  - Data frame number of rows: **{0}**",
-    #        "  - Data frame number of columns: **{1}**",
-    #        "  - Number of imputed genes: **{2}**",
-    #        "  - Percentage of dropout entries *before* imputation: **{3:.2f}%**",
-    #        "  - Percentage of dropout entries *after* imputation: **{4:.2f}%**",
-    #        "  - Accuracy (correlation) on masked data: **{5:.2f}**"
-    #    ]
-    #).format(
-    #    rows,
-    #    cols,
-    #    nb_genes,
-    #    calc_dropout(data) * 100,
-    #    calc_dropout(imputed.to_numpy()) * 100,
-    #   r
-    #)
+    message = "\n".join(
+        [
+            "  - Data frame number of rows: **{0}**",
+            "  - Data frame number of columns: **{1}**",
+            "  - Number of imputed genes: **{2}**",
+            "  - Percentage of dropout entries *before* imputation: **{3:.2f}%**",
+            "  - Percentage of dropout entries *after* imputation: **{4:.2f}%**",
+            "  - Accuracy (correlation) on masked data: **{5:.2f}**"
+        ]
+    ).format(
+        rows,
+        cols,
+        nb_genes,
+        calc_dropout(data) * 100,
+        calc_dropout(imputed.to_numpy()) * 100,
+       r
+    )
 
-    #gn.add_result(message, data_type="markdown")
-
-    exported_assay = {
-                    "matrix":  imputed.T.to_numpy().tolist(),
-                    "sampleIds": barcodes,
-                    "geneIds": genes
-                }
-    output["chunk1"] = compress_assay(exported_assay)
-    #gn.export_statically(assay, "Imputed assay")
-    with open(os.path.join(gn.exports_dir,"chunks"),"wt") as f:
-        json.dump(output, f)
-    gn.dynamic_exports.append({"extractFrom": "chunks", "kind": "assay", "meta": None})
+    gn.add_result(message, data_type="markdown")
+    
+    del data
+    gc.collect()
+    
+    assay["matrix"] = imputed.T.to_numpy().tolist()
+    print("start to compress", flush = True) 
+    assay = compress_assay(assay)
+    output["chunk1"] = assay
+    gn.export_statically(output, "Imputed assay")
+    #with open(os.path.join(gn.exports_dir,"chunks"),"wt") as f:
+    #    json.dump(output, f)
+    #gn.dynamic_exports.append({"extractFrom": "chunks", "kind": "assay", "meta": None})
     gn.commit()
-    del imputed, exported_assay
+    del imputed, assay
     gc.collect()
     print("--- %s seconds ---" % (time.time() - start_time), flush = True)
     time.sleep(10)

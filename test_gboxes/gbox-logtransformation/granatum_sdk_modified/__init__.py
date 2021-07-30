@@ -11,7 +11,7 @@ import zipfile
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import gzip
+
 import scanpy as sc
 
 from .gene_id_helpers import *
@@ -39,7 +39,6 @@ class Granatum:
         self.results_file = path.join(self.swd, "results.json")
         self.dynamic_exports = []
         self.results = []
-        self.chunked = False
 
         self.debug_dir = path.join(self.swd, "debug")
 
@@ -60,24 +59,22 @@ class Granatum:
     # -- imports -------------------------------------------------
 
     def get_import(self, inject_into):
-
         import_file = path.join(self.imports_dir, inject_into)
-        print(import_file, flush = True)
         with open(import_file, "r") as f:
             return json.load(f)
 
-    # ''' return a list of imported files '''
-    # def get_import_from_zip(self, inject_into):
-    #     import_file = path.join(self.imports_dir, inject_into)
-    #    new_file_path = path.join((self.imports_dir), inject_into.replace("zip", "")
+    ''' return a list of imported files '''
+    def get_import_from_zip(self, inject_into):
+        import_file = path.join(self.imports_dir, inject_into)
+        new_file_path = path.join((self.imports_dir), inject_into.replace("zip", "")
 
-    #   with zipfile.ZipFile(import_file,"r") as zip_ref:
-    #        zip_ref.extractall(new_file_path)
+        with zipfile.ZipFile(import_file,"r") as zip_ref:
+            zip_ref.extractall(new_file_path)
 
-    #    ret = []
-    #    for file in os.listdir(new_file_path):
-    #        ret.append(self.get_import(file))
-    #    return ret
+        ret = []
+        for file in os.listdir(new_file_path):
+            ret.append(self.get_import(file))
+        return ret
     # -- args -------------------------------------------------
 
     def get_arg(self, inject_into, default=None):
