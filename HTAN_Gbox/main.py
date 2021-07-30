@@ -17,7 +17,7 @@ import psutil
 import base64
 from sympy import symbols, Eq, solve
 from io import StringIO, BytesIO
-
+ 
 
 # Function to predict chunk size
 def pred_cell_size(coef, genesize, percent, ava_mem):
@@ -196,7 +196,7 @@ def main():
     
     df = pd.read_csv("coeffs.csv")
     coeffs = df.iloc[:1, 1:].values.squeeze().tolist()
-    ava_mem = (psutil.virtual_memory()).available/(1024*1024)
+    ava_mem = 0.7 * (psutil.virtual_memory()).available/(1024*1024)
 
     SIDs = gn.get_arg('SIDs')
     NUM = gn.get_arg("NUM")
