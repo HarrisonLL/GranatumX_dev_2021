@@ -54,6 +54,7 @@ def main():
     #assay = gn.get_import("assay")
     assay = decode_json(chunks["chunk1"])
     data = np.array(assay.get("matrix")).T
+    print(data.shape, flush = True)
 
     seed = gn.get_arg("seed")
     checkbox = gn.get_arg("use_auto_limit")
@@ -130,6 +131,8 @@ def main():
     gc.collect()
     
     assay["matrix"] = imputed.T.to_numpy().tolist()
+    deepimpute_time = time.time()
+    print("--- %s seconds --- for deepimpute" % (deepimpute_time - start_time), flush = True)
     print("start to compress", flush = True) 
     assay = compress_assay(assay)
     output["chunk1"] = assay
@@ -140,7 +143,8 @@ def main():
     gn.commit()
     del imputed, assay
     gc.collect()
-    print("--- %s seconds ---" % (time.time() - start_time), flush = True)
+    print("--- %s seconds --- for compress" % (time.time() - deepimpute_time), flush = True)
+    print("--- %s seconds --- for whole gbox" % (time.time() - start_time), flush = True)
     time.sleep(10)
 
 if __name__ == "__main__":
