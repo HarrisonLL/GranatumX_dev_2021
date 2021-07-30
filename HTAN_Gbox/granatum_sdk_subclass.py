@@ -73,9 +73,9 @@ class granatum_extended(granatum_sdk):
                            }
                    count += 1
                    if "chunk"+str(count) in new_file:
-                       new_file["chunk"+str(count)] += [compress_chunk(new_assay)]
+                       new_file["chunk"+str(count)] += [self.compress_chunk(new_assay)]
                    else:
-                       new_file["chunk"+str(count)] = [compress_chunk(new_assay]]
+                       new_file["chunk"+str(count)] = [self.compress_chunk(new_assay]]
             return new_file
 
 
