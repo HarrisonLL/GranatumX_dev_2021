@@ -29,22 +29,6 @@ class granatum_extended(granatum_sdk):
         return "current chunk" in json_dict
 
 
-    def decode_json(jsonstr):
-        bio = BytesIO()
-        stream = BytesIO(base64.b64decode(jsonstr.encode('utf-8')))
-        decompressor = gzip.GzipFile(fileobj=stream, mode='r')
-
-        while True:
-            chunk = decompressor.read(8192)
-            if not chunk:
-                decompressor.close()
-                bio.seek(0)
-                output = bio.read().decode("utf-8")
-                break
-            bio.write(chunk)
-        return json.loads(output)
-
-
     def adjust_transform(self, json_dict):
         # user rerun the gbox
         if json_dict["current chunk"][0] == self.gbox_name:
@@ -55,26 +39,39 @@ class granatum_extended(granatum_sdk):
         elif json_dict["current chunk"][-1] == json_dict["suggested chunk"].get(self.gbox_name)[0] == "row":
             pass
         elif json_dict["current chunk"][-1] == "col" and json_dict["suggested chunk"].get(self.gbox_name)[0] == "row":
-            for i in range(len(json_dict)-3):
-                # decompress
-            pass
+            #for i in range(len(json_dict)-3):
+            pass   
         elif json_dict["current chunk"][-1] == "row" and json_dict["suggested chunk"].get(self.gbox_name)[0] == "col":
             pass
 
 
-    def iterate_chunks(self, json_dict):
-        for k,v in json_dict.items():
-            tmp = base64.b64decode(v)
-            bio = BytesIO()
-            stream = BytesIO(base64.b64decode(b.encode('utf-8')))
-            decompressor = gzip.GzipFile(fileobj=stream, mode='r')
-            while True:  # until EOF
-                chunk = decompressor.read(8192)
-                if not chunk:
-                    decompressor.close()
-                    bio.seek(0)
-                    output = bio.read().decode("utf-8")
-                    break
-                bio.write(chunk)
-            # yield an assay type
-            yield output
+    def decompress_chunk(self, pram1):
+        bio = BytesIO()
+        stream = BytesIO(base64.b64decode(pram1.encode('utf-8')))
+        decompressor = gzip.GzipFile(fileobj=stream, mode='r')
+        while True:  # until EOF
+            chunk = decompressor.read(8192)
+            if not chunk:
+                decompressor.close()
+                bio.seek(0)
+                output = bio.read().decode("utf-8")
+                break
+            bio.write(chunk)
+        return json.loads(output)
+
+
+    def compress_chunk(self, pram1):
+        tmp = json.dumps(pram1)
+        bio = BytesIO()
+        bio.write(tmp.encode('utf-8'))
+        bio.seek(0)
+        stream = BytesIO()
+        compressor = gzip.GzipFile(fileobj=stream, mode = 'w')
+        while True:
+            chunk = bio.read(8192)
+            if not chunk:
+                compressor.close()
+                break
+            compressor.write(chunk)
+        encoded = base64.b64encode(stream.getvalue())
+        return(encoded.decode('utf-8'))
