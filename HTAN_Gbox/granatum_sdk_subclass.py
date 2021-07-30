@@ -56,7 +56,7 @@ class granatum_extended(Granatum):
                    if "chunk"+str(count) in new_file:
                        new_file["chunk"+str(count)] += [self.compress_chunk(new_assay)]
                    else:
-                       new_file["chunk"+str(count)] = [self.compress_chunk(new_assay]]
+                       new_file["chunk"+str(count)] = [self.compress_chunk(new_assay)]
             return new_file
 
         elif json_dict["current chunk"][-1] == "row" and json_dict["suggested chunk"].get(self.gbox_name)[0] == "col":
@@ -76,7 +76,7 @@ class granatum_extended(Granatum):
                    if "chunk"+str(count) in new_file:
                        new_file["chunk"+str(count)] += [self.compress_chunk(new_assay)]
                    else:
-                       new_file["chunk"+str(count)] = [self.compress_chunk(new_assay]]
+                       new_file["chunk"+str(count)] = [self.compress_chunk(new_assay)]
             return new_file
 
 
