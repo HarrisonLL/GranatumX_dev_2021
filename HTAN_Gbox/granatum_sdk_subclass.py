@@ -25,24 +25,58 @@ class granatum_extended(granatum_sdk):
         self.gbox_name = gbox_name
 
 
-    def check_chunk(self, json_dict):
-        return "current chunk" in json_dict
+    def check_chunk(self, assay):
+        return "current chunk" in assay
 
 
-    def adjust_transform(self, json_dict):
+    def adjust_transform(self, assay):
         # user rerun the gbox
-        if json_dict["current chunk"][0] == self.gbox_name:
+        if assay["current chunk"][0] == self.gbox_name:
             return
         # four situations
-        if json_dict["current chunk"][-1] == json_dict["suggested chunk"].get(self.gbox_name)[0] == "col":
+        if assay["current chunk"][-1] == assay["suggested chunk"].get(self.gbox_name)[0] == "col":
             pass
-        elif json_dict["current chunk"][-1] == json_dict["suggested chunk"].get(self.gbox_name)[0] == "row":
+        elif assay["current chunk"][-1] == assay["suggested chunk"].get(self.gbox_name)[0] == "row":
             pass
-        elif json_dict["current chunk"][-1] == "col" and json_dict["suggested chunk"].get(self.gbox_name)[0] == "row":
-            #for i in range(len(json_dict)-3):
-            pass   
+        elif assay["current chunk"][-1] == "col" and assay["suggested chunk"].get(self.gbox_name)[0] == "row":
+            new_file = dict()
+            for i in range(len(assay)-3):
+               chunk = self.decompress_chunk(assay["chunk"+str(i)])
+               org_num_row = assay["origin data size"][0]
+               sug_num_row = assay["suggested chunk"].get(self.gbox_name)[1]
+               count = 0
+               for j in range(0, org_num_row, sug_num_row):
+                   new_assay = {
+                                "matrix":chunk["matrix"][j:j+sug_num_row],
+                                "geneIds":chunk["geneIds"][j:j+sug_num_row],
+                                "sampleIds":chunk["sampleIds"]
+                           }
+                   count += 1
+                   if "chunk"+str(count) in new_file:
+                       new_file["chunk"+str(count)] += [compress_chunk(new_assay)]
+                   else:
+                       new_file["chunk"+str(count)] = [compress_chunk(new_assay]]
+            return new_file
+
         elif json_dict["current chunk"][-1] == "row" and json_dict["suggested chunk"].get(self.gbox_name)[0] == "col":
-            pass
+            new_file = dict()
+            for i in range(len(assay)-3):
+               chunk = self.decompress_chunk(assay["chunk"+str(i)])
+               org_num_col = assay["origin data size"][0]
+               sug_num_col = assay["suggested chunk"].get(self.gbox_name)[1]
+               count = 0
+               for j in range(0, org_num_col, sug_num_col):
+                   new_assay = {
+                                "matrix":np.array(chunk["matrix"][:, j:j+sug_num_col]).tolist(),
+                                "geneIds":chunk["geneIds"],
+                                "sampleIds":chunk["sampleIds"][j:j+sug_num_col]
+                           }
+                   count += 1
+                   if "chunk"+str(count) in new_file:
+                       new_file["chunk"+str(count)] += [compress_chunk(new_assay)]
+                   else:
+                       new_file["chunk"+str(count)] = [compress_chunk(new_assay]]
+            return new_file
 
 
     def decompress_chunk(self, pram1):
