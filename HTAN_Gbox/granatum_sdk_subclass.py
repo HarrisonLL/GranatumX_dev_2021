@@ -1,9 +1,9 @@
-import granatum_sdk
+from granatum_sdk import Granatum
 import base64
 from io import StringIO, BytesIO
 import gzip
 
-class granatum_extended(granatum_sdk):
+class granatum_extended(Granatum):
 
     """
     chunk data model:
@@ -22,6 +22,7 @@ class granatum_extended(granatum_sdk):
     """
 
     def __init__(self, gbox_name):
+        super().__init__()
         self.gbox_name = gbox_name
 
 
