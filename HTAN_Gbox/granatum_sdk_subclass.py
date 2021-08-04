@@ -78,7 +78,7 @@ class granatum_extended(Granatum):
                         else:
                             new_file["chunk"+str(count)] = [assay["chunk"+str(j+1)]]
                     if (new_col_size-left) % org_col_size != 0:
-                        chunk = self.decompress_chunk(assay["chunk"+str(i+(new_col_size-left)//org_col_size)])
+                        chunk = self.decompress_chunk(assay["chunk"+str(1+i+(new_col_size-left)//org_col_size)])
                         new_assay = {
                                 "matrix":np.array(chunk["matrix"][:, :(new_col_size-left) % org_col_size]).tolist(),
                                 "geneIds":chunk["geneIds"],
@@ -92,11 +92,12 @@ class granatum_extended(Granatum):
                                 "geneIds":chunk["geneIds"],
                                 "sampleIds":chunk["sampleIds"][(new_col_size-left) % org_col_size:]
                            }
-                        new_file["chunk"+str(count+1)] += [self.compress_chunk(next_assay)]
+                        new_file["chunk"+str(count+1)] = [self.compress_chunk(next_assay)]
+                        i += math.ceil((new_col_size-left)/org_col_size)
                         left = org_col_size - ((new_col_size-left) % org_col_size)
                     else:
+                        i += math.ceil((new_col_size-left)/org_col_size)
                         left = 0
-                    i += math.ceil((new_col_size-left)/org_col_size)
                 return new_file
 
         elif assay["current chunk"][-1] == assay["suggested chunk"].get(self.gbox_name)[0] == "row":
@@ -123,7 +124,7 @@ class granatum_extended(Granatum):
                                 "sampleIds":chunk["sampleIds"]
                            }
                         count += 1
-                        new_file["chunk"+str(count)] = [self.compress_chunk(new_assay])
+                        new_file["chunk"+str(count)] = [self.compress_chunk(new_assay)]
                         if j + new_row_size >= org_row_size:
                             left = new_row_size - ((org_row_size-left) % new_row_size)
                 return new_file
@@ -140,7 +141,7 @@ class granatum_extended(Granatum):
                         else:
                             new_file["chunk"+str(count)] = [assay["chunk"+str(j+1)]]
                     if (new_row_size-left) % org_row_size != 0:
-                        chunk = self.decompress_chunk(assay["chunk"+str(i+(new_row_size-left)//org_row_size)])
+                        chunk = self.decompress_chunk(assay["chunk"+str(1+i+(new_row_size-left)//org_row_size)])
                         new_assay = {
                                 "matrix":chunk["matrix"][:(new_row_size-left) % org_row_size]
                                 "geneIds":chunk["geneIds"][:(new_row_size-left) % org_row_size]
@@ -154,11 +155,12 @@ class granatum_extended(Granatum):
                                 "geneIds":chunk["geneIds"][(new_row_size-left) % org_row_size:],
                                 "sampleIds":chunk["sampleIds"]
                            }
-                        new_file["chunk"+str(count+1)] += [self.compress_chunk(next_assay)]
+                        new_file["chunk"+str(count+1)] = [self.compress_chunk(next_assay)]
+                        i += math.ceil((new_row_size-left)/org_row_size)
                         left = org_row_size - ((new_row_size-left) % org_row_size)
                     else:
+                        i += math.ceil((new_row_size-left)/org_row_size)
                         left = 0
-                    i += math.ceil((new_row_size-left)/org_row_size)
                 return new_file
 
 
