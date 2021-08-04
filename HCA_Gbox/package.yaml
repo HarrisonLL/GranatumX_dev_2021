@@ -60,7 +60,7 @@ gboxes:
           description: Please enter an organ of interest.
         - type: text
           label: Species
-          default: 'human'
+          default: 'Homo sapiens'
           injectInto: SPE
           description: Please enter species of interest.
       

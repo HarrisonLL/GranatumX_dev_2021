@@ -19,7 +19,7 @@ import gc
 from io import StringIO, BytesIO
 import gzip
 import base64
-
+import time
 
 def pred_cell_size(coef, genesize, percent, ava_mem):
     x = symbols('x')
@@ -83,7 +83,8 @@ def export_data(gn,coeffs,ava_mem):
     print(ava_mem, flush=True)
     print(cell_size, flush=True)
     print(gene_size, flush=True)
-    chunk_size = pred_cell_size(coeffs, gene_size, percent, ava_mem)
+    #chunk_size = pred_cell_size(coeffs, gene_size, percent, ava_mem)
+    chunk_size = 1000
     print(chunk_size,flush=True)
 
     if chunk_size >= cell_size:
@@ -97,39 +98,33 @@ def export_data(gn,coeffs,ava_mem):
         gn.export(exported_assay,  "HCA assay")
     else:
         print("Chunking the data..", flush=True)
-        output = {}
+        output = {"origin data size":[gene_size, cell_size],
+                  "current chunk":["deepimpute", "col"],
+                  "suggested chunk": {
+                                    "deepimpute": ["col", 1234],
+                                    "log-transform":["row", 1234]
+                                    }
+                  }
+        count = 1
         for i in range(0, cell_size, chunk_size):
-            start = time()
             data = sparse.tocsr()[:,i:i+chunk_size].todense().tolist()
-            end = time()
-            print(end-start, flush=True)
             exported_assay = {
                 "matrix":  data,
                 "sampleIds": ((ds.ca["CellID"])[i:i+chunk_size].tolist()),
                 "geneIds": ds.ra["Gene"].tolist(),
             }
             chunk_dir = os.path.join(gn.exports_dir,"chunks")
-            assay_name = "HCA assay" + str(i//10) + '.gz'
+            assay_name = "chunk" + str(count)
             output[assay_name] = compress_assay(exported_assay)
-
+            count += 1
             del(data)
             del(exported_assay)
             gc.collect()
         
-        with gzip.open(os.path.join(gn.exports_dir,"chunks.gz"),"wt") as f:
+        with open(os.path.join(gn.exports_dir,"chunks"),"wt") as f:
             json.dump(output, f)
-        gn.dynamic_exports.append({"extractFrom": "chunks.gz", "kind": "assay", "meta": None})
+        gn.dynamic_exports.append({"extractFrom": "chunks", "kind": "assay", "meta": None})
 
-   #print('Converting to assay file...',flush = True)
-   # length = len(ds[0, :])
-   # print('Choose 1000 cells out of %i'%length, flush=True)
-   # indices = sorted(np.random.choice(length,1000, replace=False))
-   # exported_assay = {
-   #     "matrix":  (ds[:,indices].tolist()),
-   #     "sampleIds": ((ds.ca["CellID"])[indices].tolist()),
-   #     "geneIds": ds.ra["Gene"].tolist(),
-   # }
-   # gn.export(exported_assay,  "HCA assay")
     gn.add_result("Successfully exporting HCA data", data_type='markdown')  
     gn.commit()
 
@@ -142,13 +137,12 @@ def download_data(ProjectID, Species, Organ, gn,coeffs,ava_mem):
     os.mkdir(dirpath)
 
     project_uuid = ProjectID
-    catalog = 'dcp6'
     endpoint_url = f'https://service.azul.data.humancellatlas.org/index/projects/{project_uuid}'
     save_location = dirpath
 
 
     try:
-        response = requests.get(endpoint_url, params={'catalog': catalog})
+        response = requests.get(endpoint_url)
         response.raise_for_status()
 
         response_json = response.json()
@@ -171,6 +165,7 @@ def download_data(ProjectID, Species, Organ, gn,coeffs,ava_mem):
         if len(directory) == 0:
             print("Download unsucessful. The file of interest is not found in the project folder.", flush=True)
             print("Please check if any mistyping occurs.", flush=True)
+            time.sleep(30)
             gn.commit()
             return
         
@@ -178,20 +173,25 @@ def download_data(ProjectID, Species, Organ, gn,coeffs,ava_mem):
         export_data(gn,coeffs,ava_mem)
     
     except requests.exceptions.HTTPError:
-        print("Invalid ID entered. Please try again.")
+        print("Invalid ID entered. Please try again.", flush=True)
+        time.sleep(30)
         gn.commit()
 
 
 def main():
     df = pd.read_csv("coeffs.csv")
     coeffs = df.iloc[:1, 1:].values.squeeze().tolist()
-    print(coeffs, flush=True)
+    #print(coeffs, flush=True)
     ava_mem = (psutil.virtual_memory()).available/(1024*1024)
 
     gn = granatum_sdk.Granatum()
     ProjectID = gn.get_arg('PID').lower()
-    Species = gn.get_arg('SPE').lower()
+    Species = gn.get_arg('SPE')
     Organ = gn.get_arg('ORG').lower()
+    if Species == "Mus musculus":
+        Species = "mouse"
+    elif Species == "Homo sapiens":
+        Species = "human"
     download_data(ProjectID, Species, Organ, gn,coeffs,ava_mem)
 
 
