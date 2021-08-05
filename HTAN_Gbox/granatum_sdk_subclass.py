@@ -3,7 +3,6 @@ import base64
 from io import StringIO, BytesIO
 import gzip
 import json
-import math
 import numpy as np
 import time
 
@@ -34,7 +33,7 @@ class granatum_extended(Granatum):
         return "current chunk" in assay
 
 
-    def adjust_transform_helper(self, chunk, count, flag, l=None, r=None):
+    def adjust_transform_helper2(self, chunk, count, flag, l=None, r=None):
         if flag == "col":
              new_assay = {
                      "matrix":np.array(chunk["matrix"])[:,l:r].tolist(),
@@ -57,7 +56,57 @@ class granatum_extended(Granatum):
                  self.new_file["chunk"+str(count)] = [self.compress_chunk(new_assay)]
 
 
+    def adjust_transform_helper1(self,assay,new_size, org_size, flag):
+        if new_size < org_size:
+            left = 0
+            count = 1
+            begin = time.time()
+            for i in range(len(assay)-3):
+                chunk = self.decompress_chunk(assay["chunk"+str(i+1)])
+                if flag == "col":
+                    current_size = len(chunk["sampleIds"])
+                else:
+                    current_size = len(chunk["geneIds"])
+                
+                if left != 0:
+                    self.adjust_transform_helper2(chunk, count, flag, r=left)
+                for j in range(left, current_size, new_size):
+                    self.adjust_transform_helper2(chunk, count, flag, l=j, r=j+new_size)
+                    count += 1
+                    end = time.time()
+                    print("finish one new chunk, it took %.3f"%(end-begin), flush=True)
+                    begin = time.time()
+                    if j + new_size >= current_size:
+                        left = new_size - ((current_size-left) % new_size)
+        else:
+            count = 1
+            left = new_size
+            for i in range(len(assay)-3):
+                if i < len(assay) - 4:
+                    current_size = org_size
+                else:
+                    if flag == "col":
+                        current_size = len(self.decompress_chunk(assay["chunk"+str(i+1)])["sampleIds"])
+                    else:
+                        current_size = len(self.decompress_chunk(assay["chunk"+str(i+1)])["geneIds"])
+
+                if  left >= current_size:
+                    if "chunk"+str(count) in self.new_file:
+                        self.new_file["chunk"+str(count)] += [assay["chunk"+str(i+1)]]
+                    else:
+                        self.new_file["chunk"+str(count)] = [assay["chunk"+str(i+1)]]
+                    left -= current_size
+                else:
+                    chunk = self.decompress_chunk(assay["chunk"+str(i+1)])
+                    self.adjust_transform_helper2(chunk, count, flag, r=left)
+                    self.adjust_transform_helper2(chunk, count+1, flag, l=left)
+                    left = new_size - (current_size - left)
+                    count += 1
+
+
     def adjust_transform(self, assay):
+        #assay["suggested chunk"].get(self.gbox_name)[1] = 300
+
         # user rerun the gbox
         if assay["current chunk"][0] == self.gbox_name:
             return
@@ -65,80 +114,12 @@ class granatum_extended(Granatum):
         if assay["current chunk"][-1] == assay["suggested chunk"].get(self.gbox_name)[0] == "col":
             new_col_size = assay["suggested chunk"].get(self.gbox_name)[1]
             org_col_size = assay["suggested chunk"].get(assay["current chunk"][0])[1]
-            if new_col_size < org_col_size:
-                left = 0
-                count = 0
-                for i in range(len(assay)-3):
-                    chunk = self.decompress_chunk(assay["chunk"+str(i+1)])
-                    if left != 0:
-                        self.adjust_transform_helper(chunk, count, "col", r=left)
-                    for j in range(left, org_col_size, new_col_size):
-                        count += 1
-                        self.adjust_transform_helper(chunk, count, "col", l=j, r=j+new_col_size)
-                        if j + new_col_size >= org_col_size:
-                            left = new_col_size - ((org_col_size-left) % new_col_size)
-            else:
-                count = 0
-                left = 0
-                i = 0
-                while i < len(assay)-3:
-                    begin = time.time()
-                    count += 1
-                    for j in range(i, i + (new_col_size-left)//org_col_size):
-                        if "chunk"+str(count) in self.new_file:
-                            self.new_file["chunk"+str(count)] += [assay["chunk"+str(j+1)]]
-                        else:
-                            self.new_file["chunk"+str(count)] = [assay["chunk"+str(j+1)]]
-                    if (new_col_size-left) % org_col_size != 0:
-                        chunk = self.decompress_chunk(assay["chunk"+str(1+i+(new_col_size-left)//org_col_size)])
-                        self.adjust_transform_helper(chunk, count, "col", r=(new_col_size-left) % org_col_size)
-                        self.adjust_transform_helper(chunk, count+1, "col", l=(new_col_size-left) % org_col_size)
+            self.adjust_transform_helper1(assay, new_col_size, org_col_size, "col")
 
-                        i += math.ceil((new_col_size-left)/org_col_size)
-                        left = org_col_size - ((new_col_size-left) % org_col_size)
-                    else:
-                        i += math.ceil((new_col_size-left)/org_col_size)
-                        left = 0
-                    end = time.time()
-                    print("finish one chunk, and it took", flush=True)
-                    print(end-begin, flush=True)
-                   
         elif assay["current chunk"][-1] == assay["suggested chunk"].get(self.gbox_name)[0] == "row":
             new_row_size = assay["suggested chunk"].get(self.gbox_name)[1]
             org_row_size = assay["suggested chunk"].get(assay["current chunk"][0])[1]
-            if new_row_size < org_row_size:
-                left = 0
-                count = 0
-                for i in range(len(assay)-3):
-                    chunk = self.decompress_chunk(assay["chunk"+str(i+1)])
-                    if left != 0:
-                        self.adjust_transform_helper(chunk, count, "row", r=left)
-                    for j in range(left, org_row_size, new_row_size):
-                        count += 1
-                        self.adjust_transform_helper(chunk, count, "row", l=j, r=j+new_row_size)
-                        if j + new_row_size >= org_row_size:
-                            left = new_row_size - ((org_row_size-left) % new_row_size)
-            else:
-                count = 0
-                left = 0
-                i = 0
-                while i < len(assay)-3:
-                    count += 1
-                    for j in range(i, i + (new_row_size-left)//org_row_size):
-                        if "chunk"+str(count) in self.new_file:
-                            self.new_file["chunk"+str(count)] += [assay["chunk"+str(j+1)]]
-                        else:
-                            self.new_file["chunk"+str(count)] = [assay["chunk"+str(j+1)]]
-                    if (new_row_size-left) % org_row_size != 0:
-                        chunk = self.decompress_chunk(assay["chunk"+str(1+i+(new_row_size-left)//org_row_size)])
-                        self.adjust_transform_helper(chunk, count, "row", r=(new_row_size-left) % org_row_size)
-                        self.adjust_transform_helper(chunk, count+1, "row", l=(new_row_size-left) % org_row_size)
-
-                        i += math.ceil((new_row_size-left)/org_row_size)
-                        left = org_row_size - ((new_row_size-left) % org_row_size)
-                    else:
-                        i += math.ceil((new_row_size-left)/org_row_size)
-                        left = 0
+            self.adjust_transform_helper1(assay, new_row_size, org_row_size, "row")
 
         elif assay["current chunk"][-1] == "col" and assay["suggested chunk"].get(self.gbox_name)[0] == "row":
             org_num_row = assay["origin data size"][0]
@@ -148,7 +129,7 @@ class granatum_extended(Granatum):
                count = 0
                for j in range(0, org_num_row, sug_num_row):
                    count += 1
-                   self.adjust_transform_helper(chunk, count, "row", l=j, r=j+sug_num_row)
+                   self.adjust_transform_helper2(chunk, count, "row", l=j, r=j+sug_num_row)
 
         elif json_dict["current chunk"][-1] == "row" and json_dict["suggested chunk"].get(self.gbox_name)[0] == "col":
             org_num_col = assay["origin data size"][0]
@@ -158,7 +139,7 @@ class granatum_extended(Granatum):
                count = 0
                for j in range(0, org_num_col, sug_num_col):
                    count += 1
-                   self.adjust_transform_helper(chunk, count, "col", l=j, r=j+sug_num_col)
+                   self.adjust_transform_helper2(chunk, count, "col", l=j, r=j+sug_num_col)
 
 
     def decompress_chunk(self, pram1):
