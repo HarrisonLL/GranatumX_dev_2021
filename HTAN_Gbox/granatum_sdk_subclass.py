@@ -67,24 +67,39 @@ class granatum_extended(Granatum):
                     current_size = len(chunk["sampleIds"])
                 else:
                     current_size = len(chunk["geneIds"])
-                
+    
                 if left != 0:
-                    self.adjust_transform_helper2(chunk, count, flag, r=left)
-                    count += 1
-                    end = time.time()
-                    print("finish one new chunk, it took %.3f"%(end-begin), flush=True)
-                    begin = time.time()
-                for j in range(left, current_size, new_size):
-                    self.adjust_transform_helper2(chunk, count, flag, l=j, r=j+new_size)
-                    if j+new_size <= current_size:
+                     self.adjust_transform_helper2(chunk, count, flag, r=left)
+                     count += 1
+                     end = time.time()
+                     print("finish one new chunk, it took %.3f"%(end-begin), flush=True)
+                     begin = time.time()
+
+                while True:
+                    tmp = new_size * count % current_size
+                    if  tmp >= new_size:
+                        self.adjust_transform_helper2(chunk, count, flag, l=left, r=tmp)
                         count += 1
+                        left = tmp
                         end = time.time()
                         print("finish one new chunk, it took %.3f"%(end-begin), flush=True)
                         begin = time.time()
-                left = 0 if (current_size-left) % new_size == 0 else new_size - ((current_size-left) % new_size)
+                    elif tmp == 0:
+                        self.adjust_transform_helper2(chunk, count, flag, l=left, r=current_size)
+                        count += 1
+                        left = tmp
+                        end = time.time()
+                        print("finish one new chunk, it took %.3f"%(end-begin), flush=True)
+                        begin = time.time()
+                        break
+                    else:
+                        self.adjust_transform_helper2(chunk, count, flag, l=left, r=current_size)
+                        left = tmp
+                        break
         else:
             count = 1
             left = new_size
+            begin = time.time()
             for i in range(len(assay)-3):
                 if i < len(assay) - 4:
                     current_size = org_size
@@ -106,17 +121,20 @@ class granatum_extended(Granatum):
                     self.adjust_transform_helper2(chunk, count+1, flag, l=left)
                     left = new_size - (current_size - left)
                     count += 1
+                    end = time.time()
+                    print("finish one new chunk, it took %.3f"%(end-begin), flush=True)
+                    begin = time.time()    
 
 
     def adjust_transform(self, assay):
-
         # user rerun the gbox
         if assay["current chunk"][0] == self.gbox_name:
             return
         # four situations
         if assay["current chunk"][-1] == assay["suggested chunk"].get(self.gbox_name)[0] == "col":
-            #new_col_size = assay["suggested chunk"].get(self.gbox_name)[1]
-            new_col_size = 300
+            new_col_size = assay["suggested chunk"].get(self.gbox_name)[1]
+            #uncomment the following to test
+            #new_col_size = 300
             org_col_size = assay["suggested chunk"].get(assay["current chunk"][0])[1]
             self.adjust_transform_helper1(assay, new_col_size, org_col_size, "col")
 
@@ -144,6 +162,24 @@ class granatum_extended(Granatum):
                for j in range(0, org_num_col, sug_num_col):
                    count += 1
                    self.adjust_transform_helper2(chunk, count, "col", l=j, r=j+sug_num_col)
+   
+
+   def combine_new_chunk(self, new_chunk):
+        # new chunk is a list of base64string
+        start_part = self.decompress_chunk(new_chunk[0])
+        matrix = np.array(start_part["matrix"])
+        geneIds = start_part["geneIds"]
+        sampleIds = start_part["sampleIds"]
+        for i in range(1, len(new_chunk)):
+            part = self.decompress_chunk(new_chunk[i])
+            sampleIds += part["sampleIds"]
+            matrix = numpy.c_(matrix, np.array(part["matrix"]))
+        combined_chunk = {
+                "matrix":matrix.tolist(),
+                "geneIds":geneIds,
+                "sampleIds":sampleIds
+        }
+        return combined_chunk
 
 
     def decompress_chunk(self, pram1):
