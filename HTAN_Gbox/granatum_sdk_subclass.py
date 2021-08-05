@@ -70,14 +70,18 @@ class granatum_extended(Granatum):
                 
                 if left != 0:
                     self.adjust_transform_helper2(chunk, count, flag, r=left)
-                for j in range(left, current_size, new_size):
-                    self.adjust_transform_helper2(chunk, count, flag, l=j, r=j+new_size)
                     count += 1
                     end = time.time()
                     print("finish one new chunk, it took %.3f"%(end-begin), flush=True)
                     begin = time.time()
-                    if j + new_size >= current_size:
-                        left = new_size - ((current_size-left) % new_size)
+                for j in range(left, current_size, new_size):
+                    self.adjust_transform_helper2(chunk, count, flag, l=j, r=j+new_size)
+                    if j+new_size <= current_size:
+                        count += 1
+                        end = time.time()
+                        print("finish one new chunk, it took %.3f"%(end-begin), flush=True)
+                        begin = time.time()
+                left = 0 if (current_size-left) % new_size == 0 else new_size - ((current_size-left) % new_size)
         else:
             count = 1
             left = new_size
@@ -105,14 +109,14 @@ class granatum_extended(Granatum):
 
 
     def adjust_transform(self, assay):
-        #assay["suggested chunk"].get(self.gbox_name)[1] = 300
 
         # user rerun the gbox
         if assay["current chunk"][0] == self.gbox_name:
             return
         # four situations
         if assay["current chunk"][-1] == assay["suggested chunk"].get(self.gbox_name)[0] == "col":
-            new_col_size = assay["suggested chunk"].get(self.gbox_name)[1]
+            #new_col_size = assay["suggested chunk"].get(self.gbox_name)[1]
+            new_col_size = 300
             org_col_size = assay["suggested chunk"].get(assay["current chunk"][0])[1]
             self.adjust_transform_helper1(assay, new_col_size, org_col_size, "col")
 
