@@ -1,5 +1,6 @@
 source('./granatum_sdk.R')
-
+library(RJSONIO)
+library(jsonlite)
 # get arguments
 # arguments can be accessed using keywords specified 
 # in the "injectInto" field of the arguments section
@@ -12,18 +13,18 @@ source('./granatum_sdk.R')
 # of the package.yaml file - in our case, "exampleImport"
 assay_file <- gn_get_uploaded_file_path("assayFile")
 
-sra_num <- gn_get_arg("SRA_num")
-srs_num <- gn_get_arg("SRS_num")
-url_head <- "https://panglaodb.se/data_dl.php?"
-url_tail <- "filetype=R&datatype=readcounts"
-url_head <- paste(url_head, sra_num, sep = "sra=")
-url_head <- paste(url_head, srs_num, sep = "&srs=")
-url_link = paste(url_head, url_tail, sep = "&")
+#sra_num <- gn_get_arg("SRA_num")
+#srs_num <- gn_get_arg("SRS_num")
+#url_head <- "https://panglaodb.se/data_dl.php?"
+#url_tail <- "filetype=R&datatype=readcounts"
+#url_head <- paste(url_head, sra_num, sep = "sra=")
+#url_head <- paste(url_head, srs_num, sep = "&srs=")
+#url_link = paste(url_head, url_tail, sep = "&")
 
-file_path = "./"
-file_name = paste(sra_num, srs_num, sep = "-")
-file_name = paste(file_name, "Rdata", sep = ".")
-dl_target = paste(file_path, file_name, sep = "")
+#file_path = "./"
+#file_name = paste(sra_num, srs_num, sep = "-")
+#file_name = paste(file_name, "Rdata", sep = ".")
+#dl_target = paste(file_path, file_name, sep = "")
 #download.file(url_link, dl_target, mode = "wb")
 #system("wget https://panglaodb.se/data_dl.php?sra=SRA553822&srs=SRS2119548&filetype=R&datatype=readcounts")
 #dir()
@@ -33,7 +34,7 @@ dl_target = paste(file_path, file_name, sep = "")
 #tmp <- load("SRA553822_SRS2119548.sparse.RData")
 tmp <- load(assay_file)
 genemat <- get(tmp)
-
+timestart<-Sys.time()
 # our gn_get_import() returned an object of the "assay" class
 # this is a named list with 3 keywords: "matrix" contains the
 # gene expression values, "sampleIds" contain the cell IDs
@@ -45,46 +46,73 @@ genemat <- get(tmp)
 #print(genemat@Dim[1])
 #print(genemat@Dim[2])
 
-cell_nums = 10000
+start <- 1
+step <- 6000
+gene_num <- genemat@Dim[1]
+cell_num <- genemat@Dim[2]
 
-datamat <- rep(0,genemat@Dim[1]*cell_nums)
 #dgcmat <- as.matrix(summary(genemat))
 
 #print(ncol(dgcmat))
 #print(nrow(dgcmat))
+row_pos <- genemat@i+1
+col_pos <- findInterval(seq(genemat@x)-1,genemat@p[-1])+1
+val <- genemat@x
+#col_num <- 1
+#prev_idx <- 0
+#index_ptr <- 1
+output = list()
+count = 1
 
-col_num <- 1
-prev_idx <- 0
-index_ptr <- 1
+while (start <= cell_num){
 
-while(col_num < cell_nums){
-	if ( genemat@i[index_ptr] + 1 < prev_idx ){
-		col_num <- col_num + 1
+	end <- start + step - 1
+	if (end > cell_num){
+		end <- cell_num
 	}
-	prev_idx <- genemat@i[index_ptr] + 1 
-	datamat[genemat@Dim[1]*(col_num - 1) + prev_idx] <- genemat@x[index_ptr]
-	index_ptr <- index_ptr + 1
+	datamat <- rep(0,gene_num * (end - start + 1))
+	datamat <- matrix(datamat, ncol = (end - start + 1)) 
+	for (i in seq_along(val)){
+		if (col_pos[i] <= end && col_pos[i] >= start){
+			datamat[row_pos[i],col_pos[i]] <- val[i]
+		}
+	}
+	exported_assay <- list(matrix = datamat,
+			       sampleIds = genemat@Dimnames[[2]][start:end],
+			       geneIds = genemat@Dimnames[[1]])
+	compressed_assay <- memCompress(toJSON(exported_assay), type = 'g')
+	base64_assay <- base64_enc(compressed_assay)
+	assay_name = paste("chunk", count, sep = "")
+	output <- c(output, assay_name=base64_assay)
+
+	count <- count + 1
+	rm('exported_assay')
+	rm('datamat')
+	rm('compressed_assay')
+	rm('base64_assay')
+	start <- end + 1
+	print(Sys.time()-timestart, flush = TRUE)
 }
 
-print("dimension transform")
-datamat = matrix(datamat, ncol = cell_nums)
+#print("dimension transform")
+#datamat = matrix(datamat, ncol = cell_nums)
 #dim(datamat) <- c(genemat@Dim[1],cell_nums)
 #print(ncol(datamat))
 #print(nrow(datamat))
 
 ###############################################
 #Random select columns
-export_data = as.data.frame(datamat)
-random_cols = sample(ncol(export_data), 3000)
-output = as.matrix(export_data[,random_cols])
+#export_data = as.data.frame(datamat)
+#random_cols = sample(ncol(export_data), 3000)
+#output = as.matrix(export_data[,random_cols])
 ###############################################
-Pangassay <- list(matrix = output,
-		  sampleIds = genemat@Dimnames[[2]][random_cols],
-		  geneIds = genemat@Dimnames[[1]])
+#Pangassay <- list(matrix = output,
+#		  sampleIds = genemat@Dimnames[[2]][random_cols],
+#		  geneIds = genemat@Dimnames[[1]])
 # export results
 # here, we use keywords specified in the "extractFrom"
 # field in the exports section of the package.yaml file - in 
 # our case, "exampleExport"
-gn_export_statically(Pangassay,"PanglaoDB assay")
+gn_export_statically(output,"PanglaoDB assay")
 gn_add_result("Successfully download PanglaoDB data!",data_type="markdown")
 gn_commit()

@@ -18,18 +18,18 @@ gboxes:
       uploadedFiles:
         - label: PanglaoDB sample Rdata to upload
           injectInto: assayFile
-          optional: true
-      args:
-        - type: text 
-          injectInto: SRA_num # this field is used to access arguments from the main script
-          default: SRA553822
-          label: NCBI SRA Submission Identifier (e.g. SRA553822)
-        - type: text
-          injectInto: SRS_num
-          default: SRS2119548
-          label: NCBI SRS Sample Identifier (e.g. SRS2119548)
-    #  imports:
-    #    - kind: assay # the "assay" data type by which GranatumX records genomic assays
+          #     optional: true
+          #args:
+          #- type: text 
+          #injectInto: SRA_num # this field is used to access arguments from the main script
+          #default: SRA553822
+          #label: NCBI SRA Submission Identifier (e.g. SRA553822)
+          #- type: text
+          #injectInto: SRS_num
+          #default: SRS2119548
+          #label: NCBI SRS Sample Identifier (e.g. SRS2119548)
+          #  imports:
+          #   - kind: assay # the "assay" data type by which GranatumX records genomic assays
     #      label: Assay
     #      injectInto: exampleImport # this field is used to access imports from the main script
       exports:
