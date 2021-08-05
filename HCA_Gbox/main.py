@@ -99,10 +99,11 @@ def export_data(gn,coeffs,ava_mem):
     else:
         print("Chunking the data..", flush=True)
         output = {"origin data size":[gene_size, cell_size],
-                  "current chunk":["deepimpute", "col"],
+                  "current chunk":["test", "col"],
                   "suggested chunk": {
-                                    "deepimpute": ["col", 1234],
-                                    "log-transform":["row", 1234]
+                                    "test":["col",1000],
+                                    "deepimpute": ["col", 3456],
+                                    "log-transform":["row", 3456]
                                     }
                   }
         count = 1
