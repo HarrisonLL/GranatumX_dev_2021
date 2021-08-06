@@ -7,6 +7,10 @@ library(jsonlite)
 # of the package.yaml file - in our case, "exampleArgument"
 #num_clusters <- gn_get_arg("exampleArgument")
 
+
+urlsafebase64encode <- function(x, ...){
+	gsub("+", "-", gsub("/", "_", RCurl::base64(x, encode = TRUE), fixed = TRUE), fixed = TRUE)
+}
 # get imports
 # imports can be accessed using keywords specified 
 # in the "injectInto" field of the arguments section
@@ -46,7 +50,7 @@ timestart<-Sys.time()
 #print(genemat@Dim[1])
 #print(genemat@Dim[2])
 
-start <- 1
+start <- 24001
 step <- 6000
 gene_num <- genemat@Dim[1]
 cell_num <- genemat@Dim[2]
@@ -74,16 +78,21 @@ while (start <= cell_num){
 	datamat <- matrix(datamat, ncol = (end - start + 1)) 
 	for (i in seq_along(val)){
 		if (col_pos[i] <= end && col_pos[i] >= start){
-			datamat[row_pos[i],col_pos[i]] <- val[i]
+			if(col_pos[i] %% step == 0){
+				datamat[row_pos[i],step] <- val[i]
+			}
+			else{
+				datamat[row_pos[i],col_pos[i]%%step] <- val[i]
+			}
 		}
 	}
 	exported_assay <- list(matrix = datamat,
 			       sampleIds = genemat@Dimnames[[2]][start:end],
 			       geneIds = genemat@Dimnames[[1]])
-	compressed_assay <- memCompress(toJSON(exported_assay), type = 'g')
-	base64_assay <- base64_enc(compressed_assay)
-	assay_name = paste("chunk", count, sep = "")
-	output <- c(output, assay_name=base64_assay)
+	compressed_assay <- memCompress(toJSON(exported_assay), type = 'gzip')
+	base64_assay <- urlsafebase64encode(compressed_assay)
+	assay_name <- paste("chunk", count, sep = "")
+	output[[assay_name]] <- base64_assay
 
 	count <- count + 1
 	rm('exported_assay')
