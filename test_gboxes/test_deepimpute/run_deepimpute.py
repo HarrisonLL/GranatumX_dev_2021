@@ -74,7 +74,7 @@ def main():
         data = np.array(combined.get("matrix")).T
         frameddata = pd.DataFrame(data)
         model.fit(frameddata, NN_lim=NN_lim, cell_subset=cell_subset)
-        del combined, data, framedata
+        del combined, data, frameddata
         gc.collect()
         if i == 3:
             break
@@ -88,7 +88,7 @@ def main():
         imputed = model.predict(frameddata, imputed_only=False, policy="restore")
         
         vmax = np.percentile(np.log10(1 + data.flatten()), 99)
-        print("Generating Heatmap", flaush=True)
+        print("Generating Heatmap", flush=True)
         ax[0,i].imshow(np.log10(1 + data), aspect="auto", vmax=vmax)
         ax[0,i].axes.yaxis.set_visible(False)
         ax[0,i].axes.xaxis.set_visible(False)
