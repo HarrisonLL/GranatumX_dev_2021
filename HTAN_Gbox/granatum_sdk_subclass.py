@@ -163,8 +163,7 @@ class granatum_extended(Granatum):
                    count += 1
                    self.adjust_transform_helper2(chunk, count, "col", l=j, r=j+sug_num_col)
    
-
-   def combine_new_chunk(self, new_chunk):
+    def combine_new_chunk(self, new_chunk):
         # new chunk is a list of base64string
         start_part = self.decompress_chunk(new_chunk[0])
         matrix = np.array(start_part["matrix"])
