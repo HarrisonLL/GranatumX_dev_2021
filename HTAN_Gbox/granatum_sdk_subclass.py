@@ -172,7 +172,7 @@ class granatum_extended(Granatum):
         for i in range(1, len(new_chunk)):
             part = self.decompress_chunk(new_chunk[i])
             sampleIds += part["sampleIds"]
-            matrix = numpy.c_(matrix, np.array(part["matrix"]))
+            matrix = np.c_(matrix, np.array(part["matrix"]))
         combined_chunk = {
                 "matrix":matrix.tolist(),
                 "geneIds":geneIds,
