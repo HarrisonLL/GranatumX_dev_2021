@@ -76,67 +76,63 @@ def main():
         model.fit(frameddata, NN_lim=NN_lim, cell_subset=cell_subset)
         del combined, data, frameddata
         gc.collect()
-        if i == 3:
+        if i == 1:
             break
     
-    fig, ax = plt.subplots(2, len(chunks))
-    LABELS_PARAMS = {"fontsize": 14, "fontweight": "bold", "fontname": "serif"}
+
+
+    def calc_dropout(matrix):
+        return np.sum((np.array(matrix) == 0)) * 1. / data.size
+    
+    
+    nb_genes = 0
+    sum_r = 0
     for i in range(len(chunks)):
         combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)])
         data = np.array(combined.get("matrix")).T
         frameddata = pd.DataFrame(data)
         imputed = model.predict(frameddata, imputed_only=False, policy="restore")
-        
-        vmax = np.percentile(np.log10(1 + data.flatten()), 99)
-        print("Generating Heatmap", flush=True)
-        ax[0,i].imshow(np.log10(1 + data), aspect="auto", vmax=vmax)
-        ax[0,i].axes.yaxis.set_visible(False)
-        ax[0,i].axes.xaxis.set_visible(False)
-        plt.tight_layout(pad=-0.25)
-        ax[1,i].imshow(np.log10(1 + imputed), aspect="auto", vmax=vmax)
-        ax[1,i].axes.yaxis.set_visible(False)
-        ax[1,i].axes.xaxis.set_visible(False)
-        plt.tight_layout(pad=-0.25)
-
-        #ax[0, i].set_xlabel("Genes", **LABELS_PARAMS)
-        #ax[1, i].set_xlabel("Genes", **LABELS_PARAMS)
-        #ax[0, i].set_ylabel("Cells", **LABELS_PARAMS)
-        #ax[0, i].set_title("raw (log)", **LABELS_PARAMS)
-        #ax[1, i].set_title("imputed (log)", **LABELS_PARAMS)
-        
-        assay["matrix"] = imputed.T.to_numpy().tolist()
-        assay = compress_assay(assay)
+    
+            
+        combined["matrix"] = imputed.T.to_numpy().tolist()
+        assay = compress_assay(combined)
         output["chunk" + str(i)] = assay
-        if i == 3:
-            gn.add_current_figure_to_results("Heatmaps")
+        nb_genes += len(set(model.targets.flatten()))
+        r, _ = model.score(frameddata)
+        sum_r += r
+        rows, cols = frameddata.shape
+
+        if i == 1:
+            cols *= 2
+            sum_r /= 2
+            fig, ax = plt.subplots(1, 2)
+            LABELS_PARAMS = {"fontsize": 14, "fontweight": "bold", "fontname": "serif"}
+
+            message = "\n".join(
+           [
+            "  - Data frame number of rows: **{0}**",
+            "  - Data frame number of columns: **{1}**",
+            "  - Number of imputed genes: **{2}**",
+            "  - Percentage of dropout entries *before* imputation: **{3:.2f}%**",
+            "  - Percentage of dropout entries *after* imputation: **{4:.2f}%**",
+            "  - Averaged accuracy (correlation) on masked data: **{5:.2f}**"
+           ]
+            ).format(
+                sum_r,
+                cols,
+                nb_genes,
+                calc_dropout(data) * 100,
+                calc_dropout(imputed.to_numpy()) * 100,
+                r
+            )
+            gn.add_result(message, data_type="markdown")
+            del combined,data,frameddata,imputed
+            gc.collect()
             break
+        
         del combined,data,frameddata,imputed
         gc.collect()
-            #r, p = model.score(frameddata)
-            #rows, cols = frameddata.shape
-            #nb_genes = len(set(model.targets.flatten()))
-            #def calc_dropout(matrix):
-            #    return np.sum((np.array(matrix) == 0)) * 1. / data.size
-            
-            # message = "\n".join(
-           #[
-           # "  - Data frame number of rows: **{0}**",
-           # "  - Data frame number of columns: **{1}**",
-           # "  - Number of imputed genes: **{2}**",
-           # "  - Percentage of dropout entries *before* imputation: **{3:.2f}%**",
-           # "  - Percentage of dropout entries *after* imputation: **{4:.2f}%**",
-           # "  - Accuracy (correlation) on masked data: **{5:.2f}**"
-           # ]
-           # ).format(
-           #     rows,
-           #     cols,
-           #     nb_genes,
-           #     calc_dropout(data) * 100,
-           #     calc_dropout(imputed.to_numpy()) * 100,
-           #     r
-           # )
 
-           # gn.add_result(message, data_type="markdown")
     gn.export_statically(output, "Imputed assay")
     gn.commit()
 
