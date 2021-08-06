@@ -46,13 +46,13 @@ def compress_assay(exported_assay):
 
 
 def main():
-    start_time = time.time()
-    gn = granatum_extended("deepimpute")
-    #output = {}
-    
+
+    gn = granatum_extended("deepimpute") 
     #firstly save to chunks
     chunks = gn.get_import("assay")
     print(chunks.keys(), flush = True)
+    # create an output
+    output = {"origin data size":chunks["origin data size"], "current chunk":["deepimpute", "col"], "suggested chunk":chunks["suggested chunk"]}
     begin = time.time()
     gn.adjust_transform(chunks)
     end = time.time()
@@ -67,7 +67,7 @@ def main():
     cell_subset = gn.get_arg("cell_subset")
     NN_lim = {False: gn.get_arg("NN_lim"), True: "auto"}.get(checkbox, True)
     model = MultiNet(seed=seed)
-    output = dict()
+
 
     for i in range(len(chunks)):
         combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)])
@@ -87,6 +87,9 @@ def main():
     
     nb_genes = 0
     sum_r = 0
+    data_dropout = 0
+    impu_dropout = 0
+
     for i in range(len(chunks)):
         combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)])
         data = np.array(combined.get("matrix")).T
@@ -96,17 +99,29 @@ def main():
             
         combined["matrix"] = imputed.T.to_numpy().tolist()
         assay = compress_assay(combined)
-        output["chunk" + str(i)] = assay
+        output["chunk" + str(i+1)] = assay
         nb_genes += len(set(model.targets.flatten()))
         r, _ = model.score(frameddata)
-        sum_r += r
+        sum_r += r 
         rows, cols = frameddata.shape
+        data_dropout += calc_dropout(data) * 100
+        impu_dropout += calc_dropout(imputed.to_numpy()) * 100
 
         if i == 1:
-            cols *= 2
-            sum_r /= 2
             fig, ax = plt.subplots(1, 2)
             LABELS_PARAMS = {"fontsize": 14, "fontweight": "bold", "fontname": "serif"}
+            
+            
+            vmax = np.percentile(np.log10(1 + data.flatten()), 99)
+            print("Generating Heatmap", flush=True)
+            ax[0].imshow(np.log10(1 + data), aspect="auto", vmax=vmax)
+            ax[1].imshow(np.log10(1 + imputed), aspect="auto", vmax=vmax)
+            ax[0].set_xlabel("Genes", **LABELS_PARAMS)
+            ax[1].set_xlabel("Genes", **LABELS_PARAMS)
+            ax[0].set_ylabel("Cells", **LABELS_PARAMS)
+            ax[0].set_title("last chunk raw (log)", **LABELS_PARAMS)
+            ax[1].set_title("last chunk imputed (log)", **LABELS_PARAMS)
+            gn.add_current_figure_to_results("Heatmaps")
 
             message = "\n".join(
            [
@@ -118,12 +133,12 @@ def main():
             "  - Averaged accuracy (correlation) on masked data: **{5:.2f}**"
            ]
             ).format(
-                sum_r,
-                cols,
+                rows,
+                cols*2,
                 nb_genes,
-                calc_dropout(data) * 100,
-                calc_dropout(imputed.to_numpy()) * 100,
-                r
+                data_dropout/2,
+                impu_dropout/2,
+                sum_r/2
             )
             gn.add_result(message, data_type="markdown")
             del combined,data,frameddata,imputed
