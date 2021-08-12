@@ -136,11 +136,15 @@ class granatum_extended(Granatum):
             #uncomment the following to test
             #new_col_size = 300
             org_col_size = assay["suggested chunk"].get(assay["current chunk"][0])[1]
+            if type(org_col_size) == str: org_col_size = int(org_col_size)
+            if type(new_col_size) == str: new_col_size = int(new_col_size)
             self.adjust_transform_helper1(assay, new_col_size, org_col_size, "col")
 
         elif assay["current chunk"][-1] == assay["suggested chunk"].get(self.gbox_name)[0] == "row":
             new_row_size = assay["suggested chunk"].get(self.gbox_name)[1]
             org_row_size = assay["suggested chunk"].get(assay["current chunk"][0])[1]
+            if type(org_row_size) == str: org_row_size = int(org_row_size)
+            if type(new_row_size) == str: new_row_size = int(new_row_size)
             self.adjust_transform_helper1(assay, new_row_size, org_row_size, "row")
 
         elif assay["current chunk"][-1] == "col" and assay["suggested chunk"].get(self.gbox_name)[0] == "row":
