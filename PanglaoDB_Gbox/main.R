@@ -1,6 +1,4 @@
 source('./granatum_sdk.R')
-library(RJSONIO)
-library(jsonlite)
 library(reticulate)
 reticulate::install_miniconda()
 
@@ -11,9 +9,6 @@ reticulate::install_miniconda()
 #num_clusters <- gn_get_arg("exampleArgument")
 
 
-urlsafebase64encode <- function(x, ...){
-	gsub("+", "-", gsub("/", "_", base64_enc(x), fixed = TRUE), fixed = TRUE)
-}
 # get imports
 # imports can be accessed using keywords specified 
 # in the "injectInto" field of the arguments section
@@ -103,11 +98,7 @@ while (start <= cell_num){
 	exported_assay <- list(matrix = datamat,
 			       sampleIds = genemat@Dimnames[[2]][start:end],
 			       geneIds = genemat@Dimnames[[1]])
-	#compressed_assay <- memCompress(toJSON(exported_assay), type="gzip")
-	#print("encoding..", flush=TRUE)
-	#base64_assay <- urlsafebase64encode(compressed_assay)
-	#print(base64_assay[1:10], flush = TRUE)
-	
+
 	# reticulate sourcing python script
 	reticulate::source_python("compression.py")
 	base64_assay <- compress_chunk(exported_assay)

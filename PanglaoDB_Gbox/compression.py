@@ -4,7 +4,6 @@ from io import StringIO, BytesIO
 import base64
 
 
-
 def compress_chunk(param1):
     param1["matrix"] = param1["matrix"].tolist()
     tmp = json.dumps(param1)
