@@ -1,6 +1,9 @@
 source('./granatum_sdk.R')
 library(RJSONIO)
 library(jsonlite)
+library(reticulate)
+reticulate::install_miniconda()
+
 # get arguments
 # arguments can be accessed using keywords specified 
 # in the "injectInto" field of the arguments section
@@ -9,7 +12,7 @@ library(jsonlite)
 
 
 urlsafebase64encode <- function(x, ...){
-	gsub("+", "-", gsub("/", "_", RCurl::base64(x, encode = TRUE), fixed = TRUE), fixed = TRUE)
+	gsub("+", "-", gsub("/", "_", base64_enc(x), fixed = TRUE), fixed = TRUE)
 }
 # get imports
 # imports can be accessed using keywords specified 
@@ -50,10 +53,13 @@ timestart<-Sys.time()
 #print(genemat@Dim[1])
 #print(genemat@Dim[2])
 
-start <- 24001
-step <- 6000
+start <- 1
+step <- 1000
 gene_num <- genemat@Dim[1]
 cell_num <- genemat@Dim[2]
+
+print(gene_num, flush=TRUE)
+print(cell_num, flush=TRUE)
 
 #dgcmat <- as.matrix(summary(genemat))
 
@@ -66,6 +72,14 @@ val <- genemat@x
 #prev_idx <- 0
 #index_ptr <- 1
 output = list()
+output[["origin data size"]] = c(gene_num, cell_num)
+output[["current chunk"]] = c("test", "col")
+output[["suggested chunk"]]= list()
+output[["suggested chunk"]][["test"]] = c("col",1000)
+output[["suggested chunk"]][["deepimpute"]] = c("col", 3456)
+output[["suggested chunk"]][["log-transform"]] = c("row", 3456)
+#c("test"=c("col",1000), "deepimpute"=c("col", 3456), "log-transform"=c("row", 3456))
+
 count = 1
 
 while (start <= cell_num){
@@ -89,11 +103,18 @@ while (start <= cell_num){
 	exported_assay <- list(matrix = datamat,
 			       sampleIds = genemat@Dimnames[[2]][start:end],
 			       geneIds = genemat@Dimnames[[1]])
-	compressed_assay <- memCompress(toJSON(exported_assay), type = 'gzip')
-	base64_assay <- urlsafebase64encode(compressed_assay)
+	#compressed_assay <- memCompress(toJSON(exported_assay), type="gzip")
+	#print("encoding..", flush=TRUE)
+	#base64_assay <- urlsafebase64encode(compressed_assay)
+	#print(base64_assay[1:10], flush = TRUE)
+	
+	# reticulate sourcing python script
+	reticulate::source_python("compression.py")
+	base64_assay <- compress_chunk(exported_assay)
+	
 	assay_name <- paste("chunk", count, sep = "")
 	output[[assay_name]] <- base64_assay
-
+	print("finishing one chunk", flush=TRUE)
 	count <- count + 1
 	rm('exported_assay')
 	rm('datamat')
@@ -122,6 +143,8 @@ while (start <= cell_num){
 # here, we use keywords specified in the "extractFrom"
 # field in the exports section of the package.yaml file - in 
 # our case, "exampleExport"
+print("start to export..", flush = TRUE)
+
 gn_export_statically(output,"PanglaoDB assay")
 gn_add_result("Successfully download PanglaoDB data!",data_type="markdown")
 gn_commit()
