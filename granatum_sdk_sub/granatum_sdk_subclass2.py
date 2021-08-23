@@ -9,7 +9,7 @@ class granatum_extended2(Granatum):
     """
     chunk data model:
     {   "origin data size": [#, #]
-        "current chunk": ["last_gbox_name", "col/row", "sparse/dense"],
+        "current chunk": ["last_gbox_name", "col/row", "sparse"],
         "suggested chunk": {
                 "deepimpute": ["col", ##],
                 "log-transform":["row", ##],
