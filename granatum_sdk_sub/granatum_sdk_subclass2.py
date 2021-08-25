@@ -212,9 +212,11 @@ class granatum_extended2(Granatum):
                     else:
                         self.new_file["chunk"+str(count)] = [new_chunk]
                     count += 1
-   
+
+   # Note the flag is the original chunk kind
     def combine_new_chunk(self, new_chunk, flag):
         sampleIds = []
+        geneIds = []
         lst = []
         for piece in new_chunk:
             sampleIds += piece["sampleIds"]
@@ -225,8 +227,17 @@ class granatum_extended2(Granatum):
                 tmp = scipy.sparse.csr_matrix((piece.get("data"), piece.get("indices"), piece.get("indptr")), shape=(len(piece["geneIds"]), len(piece["sampleIds"])))
             lst.append(tmp)
         if flag == "col":
-            combined = scipy.sparse.vstack(tuple(lst))
-        else:
             combined = scipy.sparse.hstack(tuple(lst))
-        return combined
+        else:
+            combined = scipy.sparse.vstack(tuple(lst))
+        
+        new_chunk = {
+            "sampleIds":sampleIds,
+            "geneIds":geneIds,
+            "data":combined.data,
+            "indices":combined.indices,
+            "indptr":combined.indptr
+    
+                }
+        return new_chunk
 
