@@ -63,7 +63,8 @@ class MultiNet:
         self.ncores = ncores
         self.verbose = verbose
         self.seed = seed
- 
+        #self.model = None
+
     def loadDefaultArchitecture(self):
         self.NN_parameters['architecture'] = [
                 {"type": "dense", "neurons": 256, "activation": "relu"},
@@ -133,7 +134,7 @@ class MultiNet:
             NN_lim=None,
             genes_to_impute=None,
             ntop=5,
-            minVMR=0.5,
+            minVMR=0,
             mode='random',
     ):
         if self.seed is not None:
@@ -176,6 +177,7 @@ class MultiNet:
         K.set_session(session)
 
         print("Building network")
+        #if self.model == None:
         model = self.build([ len(genes) for genes in self.predictors ])
 
         test_cells = np.random.choice(norm_data.index, int(0.05 * norm_data.shape[0]), replace=False)

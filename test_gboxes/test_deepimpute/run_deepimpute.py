@@ -1,4 +1,4 @@
-from granatum_sdk_subclass import granatum_extended
+from granatum_sdk_subclass2 import granatum_extended2
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -11,6 +11,7 @@ from io import StringIO, BytesIO
 import base64
 import gc
 import os
+import scipy
 
 def decode_json(jsonstr):
     bio = BytesIO()
@@ -47,7 +48,7 @@ def compress_assay(exported_assay):
 
 def main():
 
-    gn = granatum_extended("deepimpute") 
+    gn = granatum_extended2("deepimpute") 
     #firstly save to chunks
     chunks = gn.get_import("assay")
     print(chunks.keys(), flush = True)
@@ -69,36 +70,35 @@ def main():
     model = MultiNet(seed=seed)
 
 
-    for i in range(len(chunks)):
-        combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)])
-        data = np.array(combined.get("matrix")).T
-        frameddata = pd.DataFrame(data)
-        model.fit(frameddata, NN_lim=NN_lim, cell_subset=cell_subset)
-        del combined, data, frameddata
-        gc.collect()
-        if i == 1:
-            break
-    
 
-
-    def calc_dropout(matrix):
-        return np.sum((np.array(matrix) == 0)) * 1. / data.size
-    
-    
     nb_genes = 0
     sum_r = 0
     data_dropout = 0
     impu_dropout = 0
-
+    def calc_dropout(matrix):
+        return np.sum((np.array(matrix) == 0)) * 1. / data.size
+    
     for i in range(len(chunks)):
-        combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)])
-        data = np.array(combined.get("matrix")).T
+        combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)], "col")
+        matrix  = scipy.sparse.csc_matrix((combined.get("data"), combined.get("indices"), combined.get("indptr")), shape=(len(combined["geneIds"]), len(combined["sampleIds"]))).todense()
+
+        data = matrix.T
+        print(data.shape, flush=True)
         frameddata = pd.DataFrame(data)
+        model.fit(frameddata, NN_lim=NN_lim, cell_subset=cell_subset)
         imputed = model.predict(frameddata, imputed_only=False, policy="restore")
     
             
-        combined["matrix"] = imputed.T.to_numpy().tolist()
-        assay = compress_assay(combined)
+        tmp = scipy.sparse.csc_matrix(imputed.T.to_numpy())
+        assay = {
+                "data":tmp.data,
+                "indices":tmp.indices,
+                "indptr":tmp.indptr,
+                "geneIds":combined["geneIds"],
+                "sampleIds":combined["sampleIds"]
+                }
+
+
         output["chunk" + str(i+1)] = assay
         nb_genes += len(set(model.targets.flatten()))
         r, _ = model.score(frameddata)
@@ -133,20 +133,25 @@ def main():
             "  - Averaged accuracy (correlation) on masked data: **{5:.2f}**"
            ]
             ).format(
-                rows,
-                cols*2,
+                rows*2,
+                cols,
                 nb_genes,
                 data_dropout/2,
                 impu_dropout/2,
                 sum_r/2
             )
             gn.add_result(message, data_type="markdown")
-            del combined,data,frameddata,imputed
+            del combined,data,frameddata,imputed,assay,tmp
             gc.collect()
             break
         
-        del combined,data,frameddata,imputed
+        del combined,data,frameddata,imputed,assay,tmp
         gc.collect()
+
+    for i in range(len(output)-3):
+        output["chunk"+str(i+1)]["data"] =  output["chunk"+str(i+1)]["data"].tolist()
+        output["chunk"+str(i+1)]["indices"] =  output["chunk"+str(i+1)]["indices"].tolist()
+        output["chunk"+str(i+1)]["indptr"] =  output["chunk"+str(i+1)]["indptr"].tolist()
 
     gn.export_statically(output, "Imputed assay")
     gn.commit()
