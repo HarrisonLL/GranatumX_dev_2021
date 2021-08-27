@@ -142,7 +142,7 @@ def main():
            [
             "  - Data frame number of rows: **{0}**",
             "  - Data frame number of columns: **{1}**",
-            "  - Number of imputed genes: **{2}**",
+            "  - Averaged number of imputed genes: **{2}**",
             "  - Percentage of dropout entries *before* imputation: **{3:.2f}%**",
             "  - Percentage of dropout entries *after* imputation: **{4:.2f}%**",
             "  - Averaged accuracy (correlation) on masked data: **{5:.2f}**"
@@ -150,7 +150,7 @@ def main():
             ).format(
                 output["origin data size"][1],
                 output["origin data size"][0],
-                nb_genes,
+                nb_genes/(len(chunks)),
                 data_dropout/(len(chunks)),
                 impu_dropout/(len(chunks)),
                 sum_r/(len(chunks))
