@@ -107,21 +107,39 @@ def export_data(gn,coeffs,ava_mem):
                                     }
                   }
         count = 1
+        #for i in range(0, cell_size, chunk_size):
+        #    data = sparse.tocsr()[:,i:i+chunk_size].todense().tolist()
+        #    exported_assay = {
+        #        "matrix":  data,
+        #        "sampleIds": ((ds.ca["CellID"])[i:i+chunk_size].tolist()),
+        #        "geneIds": ds.ra["Gene"].tolist(),
+        #    }
+        #    chunk_dir = os.path.join(gn.exports_dir,"chunks")
+        #    assay_name = "chunk" + str(count)
+        #    output[assay_name] = compress_assay(exported_assay)
+        #    count += 1
+        #    del(data)
+        #    del(exported_assay)
+        #    gc.collect()
+
+        ## sparse matrices
         for i in range(0, cell_size, chunk_size):
-            data = sparse.tocsr()[:,i:i+chunk_size].todense().tolist()
-            exported_assay = {
-                "matrix":  data,
-                "sampleIds": ((ds.ca["CellID"])[i:i+chunk_size].tolist()),
+            data = sparse.tocsc()[:,i:i+chunk_size]
+            exported_assay = {        
+                "sampleIds":((ds.ca["CellID"])[i:i+chunk_size].tolist()),
                 "geneIds": ds.ra["Gene"].tolist(),
+                "data":data.data.tolist(),
+                "indices":data.indices.tolist(),
+                "indptr": data.indptr.tolist()
             }
-            chunk_dir = os.path.join(gn.exports_dir,"chunks")
+    
             assay_name = "chunk" + str(count)
-            output[assay_name] = compress_assay(exported_assay)
+            output[assay_name] = exported_assay
             count += 1
             del(data)
             del(exported_assay)
             gc.collect()
-        
+
         with open(os.path.join(gn.exports_dir,"chunks"),"wt") as f:
             json.dump(output, f)
         gn.dynamic_exports.append({"extractFrom": "chunks", "kind": "assay", "meta": None})
