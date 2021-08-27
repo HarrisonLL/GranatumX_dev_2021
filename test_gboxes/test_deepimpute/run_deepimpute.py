@@ -57,7 +57,7 @@ def main():
     begin = time.time()
     gn.adjust_transform(chunks)
     end = time.time()
-    print("Adjusting from 1000 to 3456 took %.3f" %(end-begin), flush=True)
+    print("Adjusting from 1000 to 500 took %.3f" %(end-begin), flush=True)
     chunks = gn.new_file
     
     print(len(chunks.keys()), flush = True)
@@ -81,25 +81,40 @@ def main():
     for i in range(len(chunks)):
         combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)], "col")
         matrix  = scipy.sparse.csc_matrix((combined.get("data"), combined.get("indices"), combined.get("indptr")), shape=(len(combined["geneIds"]), len(combined["sampleIds"]))).todense()
-
         data = matrix.T
-        print(data.shape, flush=True)
+        print(data.shape,flush=True)
+        del matrix
+        gc.collect()
+        
         frameddata = pd.DataFrame(data)
         model.fit(frameddata, NN_lim=NN_lim, cell_subset=cell_subset)
         imputed = model.predict(frameddata, imputed_only=False, policy="restore")
     
-            
-        tmp = scipy.sparse.csc_matrix(imputed.T.to_numpy())
-        assay = {
-                "data":tmp.data,
-                "indices":tmp.indices,
-                "indptr":tmp.indptr,
-                "geneIds":combined["geneIds"],
-                "sampleIds":combined["sampleIds"]
+        #if i == 0:
+        #    tmp = scipy.sparse.csc_matrix(imputed.T.to_numpy())
+        #    assay = {
+        #        "data":tmp.data,
+        #        "indices":tmp.indices,
+        #        "indptr":tmp.indptr,
+        #        "geneIds":combined["geneIds"],
+        #        "sampleIds":combined["sampleIds"]
+        #        }
+
+        #    output["chunk" + str(i+1)] = assay
+        #    del tmp,assay
+        #    gc.collect()
+
+        # Store back as Dense Form
+        print("FINISH imputing one chunk!",flush=True)
+        new_assay = {
+                "matrix":imputed.T.to_numpy().tolist(),
+                "geneIds": combined["geneIds"],
+                "sampleIds": combined["sampleIds"]
                 }
+        output["chunk"+str(i+1)] = compress_assay(new_assay)
+        print("FINISH storing one chunk!", flush=True)
 
 
-        output["chunk" + str(i+1)] = assay
         nb_genes += len(set(model.targets.flatten()))
         r, _ = model.score(frameddata)
         sum_r += r 
@@ -107,7 +122,7 @@ def main():
         data_dropout += calc_dropout(data) * 100
         impu_dropout += calc_dropout(imputed.to_numpy()) * 100
 
-        if i == 1:
+        if i == len(chunks)-1:
             fig, ax = plt.subplots(1, 2)
             LABELS_PARAMS = {"fontsize": 14, "fontweight": "bold", "fontname": "serif"}
             
@@ -133,25 +148,26 @@ def main():
             "  - Averaged accuracy (correlation) on masked data: **{5:.2f}**"
            ]
             ).format(
-                rows*2,
-                cols,
+                output["origin data size"][1],
+                output["origin data size"][0],
                 nb_genes,
-                data_dropout/2,
-                impu_dropout/2,
-                sum_r/2
+                data_dropout/(len(chunks)),
+                impu_dropout/(len(chunks)),
+                sum_r/(len(chunks))
             )
             gn.add_result(message, data_type="markdown")
-            del combined,data,frameddata,imputed,assay,tmp
+            del combined,data,frameddata,imputed, new_assay
             gc.collect()
             break
         
-        del combined,data,frameddata,imputed,assay,tmp
+        del combined,data,frameddata,imputed, new_assay
         gc.collect()
 
-    for i in range(len(output)-3):
-        output["chunk"+str(i+1)]["data"] =  output["chunk"+str(i+1)]["data"].tolist()
-        output["chunk"+str(i+1)]["indices"] =  output["chunk"+str(i+1)]["indices"].tolist()
-        output["chunk"+str(i+1)]["indptr"] =  output["chunk"+str(i+1)]["indptr"].tolist()
+    #for i in range(len(output)-1):
+    #    if i == 0:
+    #        output["chunk"+str(i+1)]["data"] =  output["chunk"+str(i+1)]["data"].tolist()
+    #        output["chunk"+str(i+1)]["indices"] =  output["chunk"+str(i+1)]["indices"].tolist()
+    #        output["chunk"+str(i+1)]["indptr"] =  output["chunk"+str(i+1)]["indptr"].tolist()
 
     gn.export_statically(output, "Imputed assay")
     gn.commit()
