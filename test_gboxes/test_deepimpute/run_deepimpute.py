@@ -53,7 +53,7 @@ def main():
     chunks = gn.get_import("assay")
     print(chunks.keys(), flush = True)
     # create an output
-    output = {"origin data size":chunks["origin data size"], "current chunk":["deepimpute", "col"], "suggested chunk":chunks["suggested chunk"]}
+    output = {"origin data size":chunks["origin data size"], "current chunk":["deepimpute", "col", "dense"], "suggested chunk":chunks["suggested chunk"]}
     begin = time.time()
     gn.adjust_transform(chunks)
     end = time.time()
@@ -90,20 +90,6 @@ def main():
         model.fit(frameddata, NN_lim=NN_lim, cell_subset=cell_subset)
         imputed = model.predict(frameddata, imputed_only=False, policy="restore")
     
-        #if i == 0:
-        #    tmp = scipy.sparse.csc_matrix(imputed.T.to_numpy())
-        #    assay = {
-        #        "data":tmp.data,
-        #        "indices":tmp.indices,
-        #        "indptr":tmp.indptr,
-        #        "geneIds":combined["geneIds"],
-        #        "sampleIds":combined["sampleIds"]
-        #        }
-
-        #    output["chunk" + str(i+1)] = assay
-        #    del tmp,assay
-        #    gc.collect()
-
         # Store back as Dense Form
         print("FINISH imputing one chunk!",flush=True)
         new_assay = {
