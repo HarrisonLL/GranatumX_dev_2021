@@ -13,6 +13,8 @@ def main():
     bool_sparse = False
     gn = granatum_extended("scanpygenefilering")
     chunks = gn.get_import('assay')
+    org_chunk_kind = chunks["current chunk"][-2]
+
     if chunks["current chunk"][-1] == "sparse":
         gn = granatum_extended2("scanpygenefilering")
         chunks = gn.get_import('assay')
@@ -29,10 +31,10 @@ def main():
     num_genes_after = 0
 
     for i in range(len(chunks)):
-        combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)], "col")
+        combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)], org_chunk_kind)
         if bool_sparse:
             matrix  = scipy.sparse.csc_matrix((combined.get("data"), combined.get("indices"), combined.get("indptr")), shape=(len(combined["geneIds"]), len(combined["sampleIds"]))).todense()
-            chunk1_assay["matrix"] = matrix
+            combined["matrix"] = matrix
             del(combined["data"])
             del(combined["indices"])
             del(combined["indptr"])
