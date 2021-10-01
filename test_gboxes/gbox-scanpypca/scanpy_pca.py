@@ -45,7 +45,7 @@ def main():
         adata.obs_names = combined.get("sampleIds")
 
     else:
-        adata = gn.ann_data_from_assay(assay)
+        adata = gn.ann_data_from_assay(combined)
     del combined
     gc.collect()
     
