@@ -10,8 +10,10 @@ import numpy as np
 
 import scipy
 import gc
+import time
 from granatum_sdk_subclass import granatum_extended
-from granatum_sdk_subclass2 import granatum_extended2m
+from granatum_sdk_subclass2 import granatum_extended2
+from sklearn.decomposition import IncrementalPCA
 
 # import pandas as pd
 # import seaborn as sns
@@ -26,6 +28,8 @@ def main():
     chunks = gn.get_import('assay')
     org_chunk_kind = chunks["current chunk"][-2]
     threshold = int(chunks["suggested chunk"]["scanpypca"][-1])
+    # for testing use
+    threshold = 10000
 
     bool_sparse = False
     if chunks["current chunk"][-1] == "sparse":
@@ -49,41 +53,46 @@ def main():
     del combined
     gc.collect()
     
-    if adata.shape[0] < threshold:
-        num_top_comps = gn.get_arg("num_top_comps")
 
-        sc.pp.pca(adata, 20)
+    print(adata.shape, flush=True)
+    num_top_comps = gn.get_arg("num_top_comps")
 
-        variance_ratios = adata.uns["pca"]["variance_ratio"]
-        pc_labels = ["PC{}".format(x + 1) for x in range(len(variance_ratios))]
+    if adata.shape[0] < threshold:  
+        start1 = time.time()
+        print("starting to do PCA", flush=True)
+        sc.pp.pca(adata, 20))
+    else:
+        start1 = time.time()
+        print("starting to do IPCA", flush=True)
+        sc.pp.pca(adata, 20, chunked=True, chunk_size=1000) # NEED TO TEST CHUNK SIZE
+    
+    variance_ratios = adata.uns["pca"]["variance_ratio"]
+    pc_labels = ["PC{}".format(x + 1) for x in range(len(variance_ratios))]
+
+    plt.figure()
+    plt.bar(pc_labels, variance_ratios)
+    plt.tight_layout()
+    gn.add_current_figure_to_results("Explained variance (ratio) by each Principal Component (PC)", height=350, dpi=75)
+
+    X_pca = adata.obsm["X_pca"]
+
+    for i, j in combinations(range(num_top_comps), 2):
+        xlabel = "PC{}".format(i + 1)
+        ylabel = "PC{}".format(j + 1)
 
         plt.figure()
-        plt.bar(pc_labels, variance_ratios)
+        plt.scatter(X_pca[:, i], X_pca[:, j], s=5000 / adata.shape[0])
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
         plt.tight_layout()
-        gn.add_current_figure_to_results("Explained variance (ratio) by each Principal Component (PC)", height=350, dpi=75)
+        gn.add_current_figure_to_results("PC{} vs. PC{}".format(i + 1, j + 1), dpi=75)
 
-        X_pca = adata.obsm["X_pca"]
-
-        for i, j in combinations(range(num_top_comps), 2):
-            xlabel = "PC{}".format(i + 1)
-            ylabel = "PC{}".format(j + 1)
-
-            plt.figure()
-            plt.scatter(X_pca[:, i], X_pca[:, j], s=5000 / adata.shape[0])
-            plt.xlabel(xlabel)
-            plt.ylabel(ylabel)
-            plt.tight_layout()
-            gn.add_current_figure_to_results("PC{} vs. PC{}".format(i + 1, j + 1), dpi=75)
-
-            pca_export = {
+        pca_export = {
             "dimNames": [xlabel, ylabel],
             "coords": {sample_id: X_pca[k, [i, j]].tolist() for k, sample_id in enumerate(adata.obs_names)},
-            }
-            gn.export(pca_export, "PC{} vs. PC{}".format(i + 1, j + 1), kind="sampleCoords", meta={})
-    else:
-        pass
-        # USE sklearn.decomposition.IncrementalPCA
-
+        }
+        gn.export(pca_export, "PC{} vs. PC{}".format(i + 1, j + 1), kind="sampleCoords", meta={})
+    print(time.time()-start1, flush=True)
     gn.commit()
 
 
