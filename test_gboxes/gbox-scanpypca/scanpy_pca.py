@@ -13,7 +13,6 @@ import gc
 import time
 from granatum_sdk_subclass import granatum_extended
 from granatum_sdk_subclass2 import granatum_extended2
-from sklearn.decomposition import IncrementalPCA
 
 # import pandas as pd
 # import seaborn as sns
