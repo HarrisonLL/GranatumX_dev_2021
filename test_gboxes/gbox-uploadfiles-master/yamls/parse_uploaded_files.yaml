@@ -1,0 +1,96 @@
+id: UploadFiles-{VER}
+meta:
+  title: Upload Files {VER}
+  subtitle: Upload any files and provide them as exports.
+  description: |
+    Upload any files and provide them as exports. You can try the [example assay
+    file](/example_assay.csv) and the [example metadata
+    file](/example_metadata.csv).
+
+    The example data is reported by Kim, Kyu-Tae, et al. "*Application of
+    single-cell RNA sequencing in optimizing a combinatorial therapeutic
+    strategy in metastatic renal cell carcinoma.*" Genome biology 17.1 (2016):
+    80.
+
+    If the file is large (150 mb or higher), zipping and choosing the .zip format could help upload speed.
+endpoints:
+  backend:
+    cmd: python ./parse_uploaded_files.py
+    type: docker
+    image: {GBOX}
+frontend:
+  uploadedFiles:
+    - label: Assay to upload
+      injectInto: assayFile
+    - label: Sample metadata file to upload
+      optional: true
+      injectInto: sampleMetaFile
+  args:
+    - type: select
+      label: Assay file format
+      choices:
+        - label: Infer format from extension
+          value: und
+        - label: Comma separated values (CSV) (*.csv)
+          value: csv
+        - label: Tab separated values (TSV) (*.txt)
+          value: tsv
+        - label: Excel file (*.xls/xlsx)
+          value: xls
+        - label: Zip file less than 2 GB (*.zip)
+          value: zip
+        - label: gz file (*.gz)
+          value: gz
+      default: und
+      injectInto: fileFormat
+    - type: select
+      label: Metadata File format
+      choices:
+        - label: Infer format from extension
+          value: und
+        - label: Comma separated values (CSV) (*.csv)
+          value: csv
+        - label: Tab separated values (TSV) (*.txt)
+          value: tsv
+        - label: Excel file (*.xls/xlsx)
+          value: xls
+        - label: Zip file less than 2 GB (*.zip)
+          value: zip
+        - label: gz file (*.gz)
+          value: gz
+      default: und
+      injectInto: fileFormatMeta
+    - type: checkbox
+      label: Convert gene IDs
+      default: false
+      injectInto: whether_convert_id
+    - type: select
+      label: Species
+      choices:
+        - label: Human
+          value: human
+        - label: Mouse
+          value: mouse
+      default: human
+      injectInto: species
+    - type: select
+      label: Convert gene IDs into (HGNC symbol is recommended)
+      choices:
+        - label: HGNC symbol (e.g. AGK)
+          value: symbol
+        - label: Ensembl Gene ID (e.g. ENSG00000006530)
+          value: ensembl
+        - label: Ensembl Transcript ID (e.g. ENST00000473247)
+          value: ensembl_trans
+        - label: NCBI Entrez gene ID (e.g. 55750)
+          value: entrez
+      default: symbol
+      injectInto: to_id_type
+    - type: checkbox
+      label: Add extra info (from BioMart) into gene metadata
+      default: true
+      injectInto: add_info
+    - type: text
+      label: Enter your email address to use GranatumX in the cloud
+      default: false
+      injectInto: email_address
