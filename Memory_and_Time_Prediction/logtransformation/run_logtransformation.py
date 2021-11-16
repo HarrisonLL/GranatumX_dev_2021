@@ -106,14 +106,13 @@ def main():
     with open("mem_performance_logtrans.csv", "a", buffering=1) as f:
       with open("time_performance2_logtrans.csv", "a", buffering=1) as f2:
 
-        #f.write("Gene Size,Cell Size,Percent,Peak Memory Usage\n")
-        #f2.write("Gene Size,Cell Size,Percent,Time\n")
-        for file in tqdm(sorted(os.listdir("/content/drive/MyDrive/datasets"))):
-          print(file,flush=True)
-          count += 1
-          while count > 56:
+        f.write("Gene Size,Cell Size,Percent,Peak Memory Usage\n")
+        f2.write("Gene Size,Cell Size,Percent,Time\n")
+        for file in tqdm(sorted(os.listdir("../../../GranatumX_dense_datasets"))):
+            print(file,flush=True)
+         # count += 1
             get_ava_memory()
-            file_path = os.path.join("/content/drive/MyDrive/datasets", file)
+            file_path = os.path.join("../../../GranatumX_dense_datasets", file)
             
             assay = json.load(open(file_path, "r"))
             begin = time()
