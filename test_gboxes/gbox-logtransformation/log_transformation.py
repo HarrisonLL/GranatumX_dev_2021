@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+import scipy
 
 from granatum_sdk import Granatum
 from granatum_sdk_subclass import granatum_extended
@@ -15,16 +16,18 @@ def main():
     gn = granatum_extended("logtransformation")
 
     chunks = gn.get_import('assay')
+    print(chunks["current chunk"], flush = True)
     if chunks["current chunk"][-1] == "sparse":
-        gn = granatum_extended2("scanpygenefilering")
+        print("it's sparse", flush = True)
+        gn = granatum_extended2("logtransformation")
         chunks = gn.get_import('assay')
         bool_sparse = True
 
     output = {"origin data size":chunks["origin data size"], 
-              "current chunk":["logtransformation", "col", "dense"],
+              "current chunk":["logtransformation", "col", "sparse"],
               "suggested chunk":chunks["suggested chunk"]}
 
-    
+    chunks["suggested chunk"]["logtransformation"] = ["col", 3456] 
     print("Start to switch", flush = True)
     gn.adjust_transform(chunks)
     switch_time = time.time()
@@ -35,7 +38,8 @@ def main():
     pseudo_counts = gn.get_arg('pseudoCounts')
 
     for i in range(len(chunks)):
-        combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)], "row")
+        print("current working on chunk %s" % (i + 1), flush = True)
+        combined = gn.combine_new_chunk(chunks["chunk"+str(i+1)], "col")
         if bool_sparse:
             matrix  = scipy.sparse.csc_matrix((combined.get("data"), combined.get("indices"), combined.get("indptr")), shape=(len(combined["geneIds"]), len(combined["sampleIds"]))).todense()
             combined#["matrix"] = matrix

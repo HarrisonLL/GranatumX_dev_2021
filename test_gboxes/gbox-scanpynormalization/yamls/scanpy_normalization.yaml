@@ -1,6 +1,6 @@
 id: ScanpyNormalization-{VER}
 meta:
-  title: Cell Normalization {VER}
+  title: Cell Normalization test {VER}
   subtitle: >-
     Normalize expression levels by cells using either Quantile Normalization
     or Scanpy Normalization

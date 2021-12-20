@@ -2,10 +2,11 @@
 
 from itertools import combinations
 import multiprocessing
-import scanpy.api as sc
+import scanpy as sc
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import quantile_transform
+from scipy.sparse import coo_matrix
 from scipy.sparse import csc_matrix
 
 from tqdm import tqdm
@@ -83,6 +84,7 @@ def make_plot(adata, log_trans=False):
     plt.xlabel('Cells')
     plt.ylabel('Expression lvl (log transformed)')
     plt.tight_layout()
+    plt.close()
 
 def quantile_normalization(mat):
     # double argsort for getting the corresponding ranks for

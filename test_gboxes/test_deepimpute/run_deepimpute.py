@@ -1,4 +1,5 @@
 from granatum_sdk_subclass2 import granatum_extended2
+from granatum_sdk_subclass import granatum_extended
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -47,11 +48,16 @@ def compress_assay(exported_assay):
 
 
 def main():
-
-    gn = granatum_extended2("deepimpute") 
+    
+    gn = granatum_extended("deepimpute")
+    bool_sparse = False
     #firstly save to chunks
     chunks = gn.get_import("assay")
     print(chunks.keys(), flush = True)
+    if chunks["current chunk"][-1] == "sparse":
+        gn = granatum_extended2("deepimpute")
+        chunks = gn.get_import('assay')
+        bool_sparse = True
     # create an output
     output = {"origin data size":chunks["origin data size"], "current chunk":["deepimpute", "col", "dense"], "suggested chunk":chunks["suggested chunk"]}
     begin = time.time()
