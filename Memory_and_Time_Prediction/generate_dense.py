@@ -42,7 +42,7 @@ def compress_assay(exported_assay):
 
 def main():
      # destroy if exits, and then create ./datasets directory
-    dirpath = './datasets'
+    dirpath = './GranatumX_dense_datasets'
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
         shutil.rmtree(dirpath)
     os.mkdir(dirpath)
@@ -68,7 +68,7 @@ def main():
         
                 name = "_".join((str(gsize), str(csize), str(percent*100)))
                 output["chunk1"] = compress_assay(assay)
-                with open(os.path.join("./datasets",name),"wt") as f:
+                with open(os.path.join("./GranatumX_dense_datasets",name),"wt") as f:
                     json.dump(output, f)
                 del matrix, sample_IDs, gene_IDs, assay, output
                 gc.collect()
