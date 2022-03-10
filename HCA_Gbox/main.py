@@ -21,14 +21,39 @@ import gzip
 import base64
 import time
 
-def pred_cell_size(coef, genesize, percent, ava_mem):
-    x = symbols('x')
-    eq = Eq(coef[0] + coef[1]*genesize + coef[2]*x + coef[3]*percent + coef[4]*(genesize**2) + coef[5]*(genesize*x) + coef[6]*(genesize*percent)+ coef[7]*(x**2) + coef[8]*(x*percent)+coef[9]*(percent**2)-ava_mem)
-    print(solve(eq), flush=True)
-    return [int(sol) for sol in solve(eq) if sol > 0]
+"""
+This function returns a predicted cell size
+Predicted chunk size is used for DeepImpute module
+
+Notice current coeffcients will not output valid cell size, IF ava_mem < 50000MB
+In the above case, we use default size of 1000
+"""
+def pred_cell_size_degree2(coef,genesize, percent,ava_mem):
+    x = symbols('x',real=True)
+    eq1 = Eq(coef[0] + coef[1]*genesize + coef[2]*x + coef[3]*percent + coef[4]*(genesize**2) + coef[5]*(genesize*x) + coef[6]*(genesize*percent)+ coef[7]*(x**2) + coef[8]*(x*percent)+coef[9]*(percent**2)-ava_mem)
+    #print(solve(eq1), flush=True)
+    if len(solve(eq1)) == 0:
+        return 1000 # DEFAULT RETURN, CHANGE IT IF NEEDED
+    ret = max(solve(eq1))
+    return int(ret) if ret > 0 else 1000 # DEFAULT RETURN, CHANGE IT IF NEEDED
 
 
-# Function to compress chunks
+"""
+This function returns a predicted gene size
+Predicted chunk size is used for Genefilter module
+"""
+def pred_gene_size_degree2(coef,cellsize, percent,ava_mem):
+    x = symbols('x',real=True)
+    eq1 = Eq(coef[0] + coef[1]*x + coef[2]*cellsize + coef[3]*percent + coef[4]*(x**2) + coef[5]*(x*cellsize) + coef[6]*(x*percent)+ coef[7]*(cellsize**2) + coef[8]*(cellsize*percent)+coef[9]*(percent**2)-ava_mem)
+    if len(solve(eq1)) == 0:
+        return 1000 # DEFAULT RETURN, CHANGE IT IF NEEDED
+    ret = min(solve(eq1)) if min(solve(eq1)) > 0 else max(solve(eq1))
+    return int(ret) if ret > 0 else 1000 # DEFAULT RETURN, CHANGE IT IF NEEDED
+
+
+"""
+This function compresses chunks
+"""
 def compress_assay(exported_assay):
     tmp = json.dumps(exported_assay)
     bio = BytesIO()
@@ -72,83 +97,67 @@ def iterate_matrices_tree(tree, keys=()):
     else:
         assert False
 
-
-def export_data(gn,coeffs,ava_mem):
+"""
+Dataset chunking, chunk size prediction for next modules
+"""
+def export_data(gn,coeffs,coeffs2,ava_mem):
     os.chdir('./tmp_datasets')
     ds = loompy.connect(os.listdir("./")[0])
     cell_size = ds.shape[1]
     gene_size = ds.shape[0]
     sparse = ds.sparse()
     percent = np.sum(sparse.data < 101) * 100 / (ds.shape[0] * ds.shape[1])
-    print(ava_mem, flush=True)
-    print(cell_size, flush=True)
-    print(gene_size, flush=True)
-    #chunk_size = pred_cell_size(coeffs, gene_size, percent, ava_mem)
+    print("available memory: {}".format(ava_mem), flush=True)
+    print("cell_size: {}".format(cell_size), flush=True)
+    print("gene_size: {}".format(gene_size), flush=True)
     chunk_size = 1000
-    print(chunk_size,flush=True)
+    print("default chunk size: {}".format(chunk_size), flush=True)
+    deepimpute_size = pred_cell_size_degree2(coeffs, gene_size, percent, ava_mem)
+    print("predicted cell size for DeepImpute: {}".format(deepimpute_size),flush=True)
+    genefilter_size = pred_gene_size_degree2(coeffs2, cell_size, percent, ava_mem)
+    print("predicted gene size for GeneFilter: {}".format(genefilter_size),flush=True)
 
-    if chunk_size >= cell_size:
-        print("Exporting all data..", flush=True)
-        # TO-DO
-        exported_assay = {
-                "matrix":  (ds[:,:].tolist()),
-                "sampleIds": ((ds.ca["CellID"])[indices].tolist()),
-                "geneIds": ds.ra["Gene"].tolist(),
-        }
-        gn.export(exported_assay,  "HCA assay")
-    else:
-        print("Chunking the data..", flush=True)
-        output = {"origin data size":[gene_size, cell_size],
-                  "current chunk":["test", "col"],
+    print("Chunking the data..", flush=True)
+    
+    output = {"origin data size":[gene_size, cell_size],
+                  "current chunk":["test", "col", "sparse"],
                   "suggested chunk": {
                                     "test":["col",1000],
-                                    "deepimpute": ["col", 3456],
-                                    "log-transform":["row", 3456]
+                                    "deepimpute": ["col", deepimpute_size],
+                                    "genefilter":["row", genefilter_size]
+    
                                     }
                   }
-        count = 1
-        #for i in range(0, cell_size, chunk_size):
-        #    data = sparse.tocsr()[:,i:i+chunk_size].todense().tolist()
-        #    exported_assay = {
-        #        "matrix":  data,
-        #        "sampleIds": ((ds.ca["CellID"])[i:i+chunk_size].tolist()),
-        #        "geneIds": ds.ra["Gene"].tolist(),
-        #    }
-        #    chunk_dir = os.path.join(gn.exports_dir,"chunks")
-        #    assay_name = "chunk" + str(count)
-        #    output[assay_name] = compress_assay(exported_assay)
-        #    count += 1
-        #    del(data)
-        #    del(exported_assay)
-        #    gc.collect()
-
-        ## sparse matrices
-        for i in range(0, cell_size, chunk_size):
-            data = sparse.tocsc()[:,i:i+chunk_size]
-            exported_assay = {        
+    count = 1
+    for i in range(0, cell_size, chunk_size):
+        data = sparse.tocsc()[:,i:i+chunk_size]
+        exported_assay = {        
                 "sampleIds":((ds.ca["CellID"])[i:i+chunk_size].tolist()),
                 "geneIds": ds.ra["Gene"].tolist(),
                 "data":data.data.tolist(),
                 "indices":data.indices.tolist(),
                 "indptr": data.indptr.tolist()
-            }
+        }
     
-            assay_name = "chunk" + str(count)
-            output[assay_name] = exported_assay
-            count += 1
-            del(data)
-            del(exported_assay)
-            gc.collect()
+        assay_name = "chunk" + str(count)
+        output[assay_name] = exported_assay
+        count += 1
+        del(data)
+        del(exported_assay)
+        gc.collect()
 
-        with open(os.path.join(gn.exports_dir,"chunks"),"wt") as f:
-            json.dump(output, f)
-        gn.dynamic_exports.append({"extractFrom": "chunks", "kind": "assay", "meta": None})
+    with open(os.path.join(gn.exports_dir,"chunks"),"wt") as f:
+        json.dump(output, f)
+    gn.dynamic_exports.append({"extractFrom": "chunks", "kind": "assay", "meta": None})
 
     gn.add_result("Successfully exporting HCA data", data_type='markdown')  
     gn.commit()
 
 
-def download_data(ProjectID, Species, Organ, gn,coeffs,ava_mem):
+"""
+Download data to server
+"""
+def download_data(ProjectID, Species, Organ, gn,coeffs,coeffs2,ava_mem):
     # destroy if exits, and then create ./tmp_datasets directory
     dirpath = './tmp_datasets'
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
@@ -189,7 +198,7 @@ def download_data(ProjectID, Species, Organ, gn,coeffs,ava_mem):
             return
         
         print("Finished downloading!", flush = True)
-        export_data(gn,coeffs,ava_mem)
+        export_data(gn,coeffs,coeffs2,ava_mem)
     
     except requests.exceptions.HTTPError:
         print("Invalid ID entered. Please try again.", flush=True)
@@ -198,9 +207,10 @@ def download_data(ProjectID, Species, Organ, gn,coeffs,ava_mem):
 
 
 def main():
-    df = pd.read_csv("coeffs.csv")
+    df = pd.read_csv("coeffs_deepimpute.csv")
+    df2 = pd.read_csv("coeffs_genefilter.csv")
     coeffs = df.iloc[:1, 1:].values.squeeze().tolist()
-    #print(coeffs, flush=True)
+    coeffs2 = df2.iloc[:1, 1:].values.squeeze().tolist()
     ava_mem = (psutil.virtual_memory()).available/(1024*1024)
 
     gn = granatum_sdk.Granatum()
@@ -211,7 +221,7 @@ def main():
         Species = "mouse"
     elif Species == "Homo sapiens":
         Species = "human"
-    download_data(ProjectID, Species, Organ, gn,coeffs,ava_mem)
+    download_data(ProjectID, Species, Organ, gn,coeffs,coeffs2,ava_mem)
 
 
 if __name__ == "__main__":
