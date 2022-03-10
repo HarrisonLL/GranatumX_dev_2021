@@ -14,6 +14,7 @@ import json
 import gzip
 from io import StringIO, BytesIO
 import base64
+import scipy
 
 
 def get_ava_memory():
@@ -21,25 +22,8 @@ def get_ava_memory():
     ava_mb = usage.available/(1024*1024)
     print("Ava memory (MB):", ava_mb, flush=True)
 
-
-def decode_json(jsonstr):
-    bio = BytesIO()
-    stream = BytesIO(base64.b64decode(jsonstr.encode('utf-8')))
-    decompressor = gzip.GzipFile(fileobj=stream, mode='r')
-
-    while True:
-        chunk = decompressor.read(8192)
-        if not chunk:
-            decompressor.close()
-            bio.seek(0)
-            output = bio.read().decode("utf-8")
-            break
-        bio.write(chunk)
-    return json.loads(output)
-
-
-def compress_assay(exported_assay):
-    tmp = json.dumps(exported_assay)
+def compress_chunk(assay):
+    tmp = json.dumps(assay)
     bio = BytesIO()
     bio.write(tmp.encode('utf-8'))
     bio.seek(0)
@@ -54,14 +38,12 @@ def compress_assay(exported_assay):
     encoded = base64.b64encode(stream.getvalue())
     return(encoded.decode('utf-8'))
 
-
-def run_deep_impute(assay, file):
+def run_deep_impute(assay):
     # Simulate DeepImpute Gbox
     print("============> Start Simulation  ==============>", flush=True)
     output = {}
-    assay = decode_json(assay[file])
-    data = np.array(assay.get("matrix")).T
-    np.random.seed(12345)
+    matrix  = scipy.sparse.csc_matrix((assay.get("data"), assay.get("indices"), assay.get("indptr")), shape=(len(assay.get("geneIds")), len(assay.get("sampleIds")))).todense()
+    data = matrix.T
     frameddata = pd.DataFrame(data)
     model = MultiNet()
     model.fit(frameddata, NN_lim="auto", cell_subset=1, minVMR=0.5)
@@ -104,57 +86,65 @@ def run_deep_impute(assay, file):
     )
     del data
     gc.collect()
-    assay["matrix"] = imputed.T.to_numpy().tolist()
-    output["chunk1"] = compress_assay(assay)
+    #tmp = scipy.sparse.csc_matrix(imputed.T.to_numpy())
+    assay["data"] = imputed.T.to_numpy().tolist()
+    #assay["indices"] = tmp.indices.tolist()
+    #assay["indptr"] = tmp.indptr.tolist()
+    output["chunk1"] = compress_chunk(assay)
     del imputed, assay
+    gc.collect()
     print("============> End Simulation <===========", flush=True)
 
+
 def main():
+    #count = -1
+    with open("mem_performance.csv", "wt", buffering=1) as f:
+         with open("time_performance_sparse.csv", "wt", buffering=1) as f2:
+             f.write("Gene Size,Cell Size,Percent,Peak Memory Usage\n")
+             f2.write("Gene Size,Cell Size,Percent,Time\n")
+             for file in tqdm(sorted(os.listdir("../../../GranatumX_training_datasets"))):
 
-    # read data from ./datasets and perform deepimpute
-    # save the result to rows
-    with open("performance1.csv", "w", buffering=1) as f:
-        with open("time_performance1.csv", "w", buffering=1) as f2:
-            f.write("Gene Size,Cell Size,Percent,Peak Memory Usage\n")
-            f2.write("Gene Size,Cell Size,Percent,Time\n")
-            count = 0
-            for file in tqdm(sorted(os.listdir("./datasets"))):
-                if 0 <= count <50:
-                    print(file,flush=True)
-                    get_ava_memory()
-                    file_path = os.path.join("./datasets", file)
-                    
-                    assay = json.load(open(file_path, "r"))
-                    begin = time()
-                    tracemalloc.start()
-                    
-                    run_deep_impute(assay, file)
+                 #count += 1
+                 #if count >= 15:
+                 #print(file,flush=True)
+                 get_ava_memory()
+                 file_path = os.path.join("../../../GranatumX_training_datasets", file)
+                 print(file, flush=True)
+                 with open(file_path, "r") as tmpf:
+                     assay = json.load(tmpf)
+                 #assay = json.load(open(file_path, "r"))
+                 #print(assay.keys(), flush = True)
+                 tmpf.close()
+                 begin = time()
+                 tracemalloc.start()
 
-                    _,PEAK = tracemalloc.get_traced_memory()
-                    tracemalloc.stop()
-                    end = time()
-                    elapse = end - begin
+                 run_deep_impute(assay)
 
+                 _,PEAK = tracemalloc.get_traced_memory()
+                 tracemalloc.stop()
+                 end = time()
+                 elapse = end - begin
 
-                    print("Peak Usage of the function:" + str(PEAK/1024/1024),flush=True)
-                    tmp = file.replace(".gz", "").split("_")
-                    gene_size = tmp[0]
-                    cell_size = tmp[1]
-                    percent = tmp[2]
-                    print("Finished simualation for sample:", flush=True)
-                    print(gene_size, cell_size, percent, flush=True)
-                    f.write(",".join([gene_size, cell_size, percent, str(PEAK/1024/1024)])+ "\n")
-                    f2.write(",".join([gene_size, cell_size, percent, str(elapse)])+ "\n")
-                    del(PEAK)
-                    del(tmp)
-                    del(gene_size)
-                    del(cell_size)
-                    del(percent)
-                    del(begin)
-                    del(end)
-                    del(elapse)
-                    gc.collect()
-                count += 1
+                 print("Peak Usage of the function:" + str(PEAK/1024/1024),flush=True)
+                 tmp = file.replace(".gz", "").split("_")
+                 gene_size = tmp[0]
+                 cell_size = tmp[1]
+                 percent = tmp[2]
+                 print("Finished simualation for sample:", flush=True)
+                 print(gene_size, cell_size, percent, flush=True)
+                 f.write(",".join([gene_size, cell_size, percent, str(PEAK/1024/1024)])+ "\n")
+                 f2.write(",".join([gene_size, cell_size, percent, str(elapse)])+ "\n")
+                 del(PEAK)
+                 del(tmp)
+                 del(gene_size)
+                 del(cell_size)
+                 del(percent)
+                 del(begin)
+                 del(end)
+                 del(elapse)
+                 gc.collect()
+
+    
     f.close()
     f2.close()
 
